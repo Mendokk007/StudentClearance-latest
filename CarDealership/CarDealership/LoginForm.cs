@@ -4,167 +4,328 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
-using System.IO;
+using System.Threading.Tasks;
 
 namespace CarDealership
 {
     public partial class LoginForm : Form
     {
-        private readonly string _connectionString;
+        private readonly string _connectionString = @"Data Source=.\SQLEXPRESS;Initial Catalog=StudentClearanceDB;Integrated Security=True;";
         private string focusedField = "";
-        private bool isDarkMode = false; // REVERTED: Now starts in Light Mode
+        private bool isDarkMode = true;
+        private bool isSliding = false;
+        private AppContext _appContext;
+        public bool NavigatedAway { get; private set; } = false;
 
-        // LUNA Palette
-        Color lunaDarkest = Color.FromArgb(1, 28, 64);   // #011C40
-        Color lunaDark = Color.FromArgb(2, 56, 89);      // #023859
-        Color lunaTeal = Color.FromArgb(38, 101, 140);   // #26658C
-        Color lunaCyan = Color.FromArgb(84, 172, 191);   // #54ACBF
-        Color lunaLight = Color.FromArgb(167, 235, 242); // #A7EBF2
+        private static readonly Font FontTitle = new Font("Segoe UI Semibold", 52F);
+        private static readonly Font FontSubtitle = new Font("Segoe UI", 18F);
+        private static readonly Font FontHeader = new Font("Segoe UI", 16, FontStyle.Bold);
+        private SolidBrush brushPrimary;
+        private SolidBrush brushSecondary;
+        private Pen penActive;
+        private Pen penInactive;
+
+        Color lunaDarkest = Color.FromArgb(1, 28, 64);
+        Color lunaTeal = Color.FromArgb(38, 101, 140);
+        Color lunaCyan = Color.FromArgb(84, 172, 191);
+        Color lunaLight = Color.FromArgb(167, 235, 242);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern Int32 SendMessage(IntPtr hWnd, int msg, int wParam, [MarshalAs(UnmanagedType.LPWStr)] string lParam);
+        [DllImport("user32.dll")] public static extern bool ReleaseCapture();
+        [DllImport("user32.dll")] public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                cp.ExStyle |= 0x02000000;
+                return cp;
+            }
+        }
 
         public LoginForm()
         {
             InitializeComponent();
-            _connectionString = @"Data Source=.\SQLEXPRESS;Initial Catalog=StudentClearanceDB;Integrated Security=True;";
+
+            this.Opacity = 1;
             this.DoubleBuffered = true;
+            typeof(Panel).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty |
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic,
+                null, pnlMain, new object[] { true });
 
-            LoadSidebarImage();
+            InitCachedResources();
             ApplyTheme();
+            ApplyRoundedCorners(this, 30);
+            SetupHoverEffects();
+            SetupDefocusHandlers();
+
+            this.Load += LoginForm_Load;
+            this.HandleCreated += (s, e) => SetPlaceholders();
+            this.VisibleChanged += LoginForm_VisibleChanged;
+            this.FormClosed += (s, e) => DisposeCachedResources();
         }
 
-        private void LoadSidebarImage()
-        {
-            string imgName = isDarkMode ? "sidebar_bg2.jpg" : "sidebar_bg.jpg";
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, imgName);
+        public void SetAppContext(AppContext ctx) => _appContext = ctx;
 
-            if (File.Exists(path))
+        // ✅ FIXED: Only attach defocus to non-textbox controls
+        private void SetupDefocusHandlers()
+        {
+            // Form and panel background clicks
+            this.MouseClick += (s, e) => DefocusAll();
+            pnlMain.MouseClick += (s, e) => DefocusAll();
+
+            // Only attach to NON-textbox controls
+            btnLogin.MouseClick += (s, e) => DefocusAll();
+            lblRegister.MouseClick += (s, e) => DefocusAll();
+            btnDarkMode.MouseClick += (s, e) => DefocusAll();
+            btnClose.MouseClick += (s, e) => DefocusAll();
+            lblHeaderSink.MouseClick += (s, e) => DefocusAll();
+
+            // Textbox lost focus
+            txtUsername.LostFocus += (s, e) => { focusedField = ""; pnlMain.Invalidate(); };
+            txtPassword.LostFocus += (s, e) => { focusedField = ""; pnlMain.Invalidate(); };
+        }
+
+        private void DefocusAll()
+        {
+            if (this.ActiveControl is TextBox)
             {
-                if (picSidebarImage.Image != null) picSidebarImage.Image.Dispose();
-                picSidebarImage.Image = Image.FromFile(path);
-                picSidebarImage.SizeMode = PictureBoxSizeMode.CenterImage;
-            }
-            else
-            {
-                this.picSidebarImage.Paint += new PaintEventHandler(this.picSidebarImage_Paint);
+                this.ActiveControl = null;
+                focusedField = "";
+                pnlMain.Invalidate();
             }
         }
 
-        #region Theme & Interaction Logic
-        private void btnDarkMode_Click(object sender, EventArgs e)
+        private void LoginForm_Load(object sender, EventArgs e)
         {
-            isDarkMode = !isDarkMode;
-            LoadSidebarImage();
-            ApplyTheme();
+            if (!isSliding) _ = SlidePanelIn();
+        }
+
+        private async void LoginForm_VisibleChanged(object sender, EventArgs e)
+        {
+            if (this.Visible && !isSliding) await SlidePanelIn();
+        }
+
+        private async Task SlidePanelIn()
+        {
+            if (isSliding) return;
+            isSliding = true;
+            int targetLeft = this.ClientSize.Width - pnlMain.Width;
+            pnlMain.Dock = DockStyle.None;
+            pnlMain.Height = this.ClientSize.Height;
+            pnlMain.Left = this.ClientSize.Width;
+            for (int i = 1; i <= 3; i++)
+            {
+                pnlMain.Left = this.ClientSize.Width - (pnlMain.Width * i / 3);
+                await Task.Delay(5);
+            }
+            pnlMain.Left = targetLeft;
+            pnlMain.Dock = DockStyle.Right;
+            isSliding = false;
+        }
+
+        private async Task SlidePanelOut()
+        {
+            if (isSliding) return;
+            isSliding = true;
+            pnlMain.Dock = DockStyle.None;
+            pnlMain.Height = this.ClientSize.Height;
+            int startLeft = pnlMain.Left;
+            for (int i = 1; i <= 3; i++)
+            {
+                pnlMain.Left = startLeft + (pnlMain.Width * i / 3);
+                await Task.Delay(5);
+            }
+            isSliding = false;
+        }
+
+        private void InitCachedResources()
+        {
+            brushPrimary = new SolidBrush(isDarkMode ? Color.White : lunaDarkest);
+            brushSecondary = new SolidBrush(isDarkMode ? lunaCyan : lunaTeal);
+            penActive = new Pen(lunaCyan, 2.5f);
+            penInactive = new Pen(Color.FromArgb(80, lunaCyan), 1.5f);
+        }
+
+        private void DisposeCachedResources()
+        {
+            brushPrimary?.Dispose();
+            brushSecondary?.Dispose();
+            penActive?.Dispose();
+            penInactive?.Dispose();
+        }
+
+        private void SetPlaceholders()
+        {
+            SendMessage(txtUsername.Handle, 0x1501, 0, "Student ID");
+            SendMessage(txtPassword.Handle, 0x1501, 0, "Password");
         }
 
         private void ApplyTheme()
         {
-            if (isDarkMode)
-            {
-                pnlMain.BackColor = lunaDarkest;
-                txtUsername.BackColor = lunaDarkest;
-                txtPassword.BackColor = lunaDarkest;
-                txtUsername.ForeColor = Color.White;
-                txtPassword.ForeColor = Color.White;
-                btnClose.ForeColor = Color.White;
-                btnDarkMode.Text = "LIGHT MODE";
-                btnDarkMode.ForeColor = lunaLight;
-            }
-            else
-            {
-                pnlMain.BackColor = Color.White;
-                txtUsername.BackColor = Color.White;
-                txtPassword.BackColor = Color.White;
-                txtUsername.ForeColor = Color.Black;
-                txtPassword.ForeColor = Color.Black;
-                btnClose.ForeColor = Color.DarkGray;
-                btnDarkMode.Text = "DARK MODE";
-                btnDarkMode.ForeColor = lunaCyan;
-            }
+            brushPrimary.Color = isDarkMode ? Color.White : lunaDarkest;
+            brushSecondary.Color = isDarkMode ? lunaCyan : lunaTeal;
+            this.BackgroundImage = isDarkMode ? ImageCache.BgDark : ImageCache.BgLight;
+            pnlMain.BackColor = isDarkMode ? Color.FromArgb(230, 1, 28, 64) : Color.FromArgb(230, 255, 255, 255);
+            Color solidBg = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.White;
+            txtUsername.BackColor = txtPassword.BackColor = solidBg;
+            txtUsername.ForeColor = txtPassword.ForeColor = isDarkMode ? Color.White : Color.Black;
+            lblRegister.ForeColor = isDarkMode ? lunaCyan : lunaTeal;
+            btnDarkMode.ForeColor = isDarkMode ? lunaLight : lunaCyan;
+            btnDarkMode.Text = isDarkMode ? "LIGHT MODE" : "DARK MODE";
+            btnLogin.BackColor = lunaTeal;
+            btnLogin.ForeColor = Color.White;
             pnlMain.Invalidate();
         }
 
-        private void txtUsername_Enter(object sender, EventArgs e)
+        private void SetupHoverEffects()
         {
-            focusedField = "username";
-            if (txtUsername.Text == "Username") { txtUsername.Text = ""; txtUsername.ForeColor = isDarkMode ? Color.White : Color.Black; }
-            pnlMain.Invalidate();
+            lblRegister.MouseEnter += (s, e) => lblRegister.ForeColor = isDarkMode ? lunaLight : lunaDarkest;
+            lblRegister.MouseLeave += (s, e) => lblRegister.ForeColor = isDarkMode ? lunaCyan : lunaTeal;
+            btnDarkMode.FlatAppearance.MouseOverBackColor = Color.Transparent;
+            btnDarkMode.FlatAppearance.MouseDownBackColor = Color.Transparent;
+            btnDarkMode.MouseEnter += (s, e) => btnDarkMode.ForeColor = isDarkMode ? Color.White : Color.Black;
+            btnDarkMode.MouseLeave += (s, e) => btnDarkMode.ForeColor = isDarkMode ? lunaLight : lunaCyan;
         }
 
-        private void txtUsername_Leave(object sender, EventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(txtUsername.Text)) { txtUsername.Text = "Username"; txtUsername.ForeColor = Color.DarkGray; }
-        }
-
-        private void txtPassword_Enter(object sender, EventArgs e)
-        {
-            focusedField = "password";
-            if (txtPassword.Text == "Password") { txtPassword.Text = ""; txtPassword.ForeColor = isDarkMode ? Color.White : Color.Black; txtPassword.UseSystemPasswordChar = true; }
-            pnlMain.Invalidate();
-        }
-
-        private void txtPassword_Leave(object sender, EventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(txtPassword.Text)) { txtPassword.Text = "Password"; txtPassword.ForeColor = Color.DarkGray; txtPassword.UseSystemPasswordChar = false; }
-        }
-
-        private void pnlMain_MouseDown(object sender, MouseEventArgs e)
-        {
-            focusedField = "";
-            lblHeaderLoginTab.Focus();
-            pnlMain.Invalidate();
-            if (e.Button == MouseButtons.Left) { ReleaseCapture(); SendMessage(this.Handle, 0xA1, 0x2, 0); }
-        }
-
-        // Hover Effect Logic
-        private void lblRegister_MouseEnter(object sender, EventArgs e) => lblRegister.ForeColor = isDarkMode ? lunaLight : lunaDarkest;
-        private void lblRegister_MouseLeave(object sender, EventArgs e) => lblRegister.ForeColor = lunaCyan;
-        #endregion
-
-        #region Custom Painting
         private void pnlMain_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-            Color headerColor = isDarkMode ? lunaLight : lunaDarkest;
-            Color lineBase = isDarkMode ? Color.FromArgb(60, 255, 255, 255) : Color.FromArgb(220, 220, 220);
+            g.DrawString("Hello!", FontTitle, brushPrimary, 40, 40);
+            g.DrawString("Welcome Student", FontSubtitle, brushSecondary, 50, 130);
+            g.DrawString("LOGIN", FontHeader, brushPrimary, 55, 220);
 
-            using (Font headerFont = new Font("Segoe UI", 32, FontStyle.Bold))
+            g.DrawLine(focusedField == "user" ? penActive : penInactive, 55, 295, 325, 295);
+            g.DrawLine(focusedField == "pass" ? penActive : penInactive, 55, 365, 325, 365);
+
+            using (GraphicsPath btnPath = new GraphicsPath())
             {
-                string text = "LOGIN";
-                Size s = TextRenderer.MeasureText(text, headerFont);
-                g.DrawString(text, headerFont, new SolidBrush(headerColor), (pnlMain.Width / 2) - (s.Width / 2), 115);
+                int r = btnLogin.Height;
+                btnPath.AddArc(0, 0, r, r, 90, 180);
+                btnPath.AddArc(btnLogin.Width - r, 0, r, r, 270, 180);
+                btnPath.CloseFigure();
+                btnLogin.Region = new Region(btnPath);
             }
-
-            using (Pen activePen = new Pen(lunaCyan, 2f))
-            using (Pen grayPen = new Pen(lineBase, 1f))
-            {
-                g.DrawLine(focusedField == "username" ? activePen : grayPen, 105, 290, 435, 290);
-                g.DrawLine(focusedField == "password" ? activePen : grayPen, 105, 360, 435, 360);
-            }
-
-            GraphicsPath btnPath = new GraphicsPath();
-            int r = btnLogin.Height;
-            btnPath.AddArc(0, 0, r, r, 90, 180);
-            btnPath.AddArc(btnLogin.Width - r, 0, r, r, 270, 180);
-            btnPath.CloseFigure();
-            btnLogin.Region = new Region(btnPath);
         }
 
-        private void picSidebarImage_Paint(object sender, PaintEventArgs e)
+        private void btnLogin_Click(object sender, EventArgs e)
         {
-            if (picSidebarImage.Image == null)
+            string username = txtUsername.Text.Trim();
+            string password = txtPassword.Text.Trim();
+
+            if (string.IsNullOrEmpty(username))
             {
-                Graphics g = e.Graphics;
-                g.FillPolygon(new SolidBrush(lunaDark), new Point[] { new Point(0, 0), new Point(350, 0), new Point(0, 600) });
-                g.FillPolygon(new SolidBrush(lunaTeal), new Point[] { new Point(0, 400), new Point(350, 200), new Point(350, 600), new Point(0, 600) });
+                MessageBox.Show("Please enter your Student ID.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtUsername.Focus();
+                return;
+            }
+            if (string.IsNullOrEmpty(password))
+            {
+                MessageBox.Show("Please enter your password.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtPassword.Focus();
+                return;
+            }
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(_connectionString))
+                {
+                    conn.Open();
+                    string query = "SELECT Role FROM Users WHERE Username = @username AND Password = @password";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@username", username);
+                        cmd.Parameters.AddWithValue("@password", password);
+                        object result = cmd.ExecuteScalar();
+
+                        if (result != null)
+                        {
+                            string role = result.ToString();
+                            if (role == "Student")
+                            {
+                                NavigatedAway = true;
+                                this.Close();
+                                _appContext?.OpenHomeForm(_connectionString, username);
+                            }
+                            else if (role == "Admin")
+                            {
+                                MessageBox.Show("Admin login successful! Admin panel coming soon.", "Welcome Admin", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                        }
+                        else
+                        {
+                            MessageBox.Show("Invalid Student ID or password.", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            txtPassword.Clear();
+                            txtPassword.Focus();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Login error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-        #endregion
 
-        [DllImport("user32.dll")] public static extern bool ReleaseCapture();
-        [DllImport("user32.dll")] public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        private async void lblRegister_Click(object sender, EventArgs e)
+        {
+            await SlidePanelOut();
+            this.Hide();
+            RegisterForm reg = new RegisterForm(_connectionString);
+            reg.StartPosition = FormStartPosition.Manual;
+            reg.Location = this.Location;
+            reg.FormClosed += (s, args) => { this.Location = reg.Location; this.Show(); };
+            reg.Show();
+        }
+
+        private void HandleDragging(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                ReleaseCapture();
+                SendMessage(this.Handle, 0xA1, 0x2, 0);
+            }
+        }
+
+        private void Field_Enter(object sender, EventArgs e)
+        {
+            focusedField = (sender == txtUsername) ? "user" : "pass";
+            pnlMain.Invalidate();
+        }
+
+        private void Field_Leave(object sender, EventArgs e)
+        {
+            focusedField = "";
+            pnlMain.Invalidate();
+        }
+
         private void btnClose_Click(object sender, EventArgs e) => Application.Exit();
-        private void lblRegister_Click(object sender, EventArgs e) => new RegisterForm(_connectionString).ShowDialog();
+
+        private void btnDarkMode_Click(object sender, EventArgs e)
+        {
+            isDarkMode = !isDarkMode;
+            ApplyTheme();
+            SetPlaceholders();
+        }
+
+        private void ApplyRoundedCorners(Control ctrl, int radius)
+        {
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                path.AddArc(0, 0, radius, radius, 180, 90);
+                path.AddArc(ctrl.Width - radius, 0, radius, radius, 270, 90);
+                path.AddArc(ctrl.Width - radius, ctrl.Height - radius, radius, radius, 0, 90);
+                path.AddArc(0, ctrl.Height - radius, radius, radius, 90, 90);
+                path.CloseFigure();
+                ctrl.Region = new Region(path);
+            }
+        }
     }
 }

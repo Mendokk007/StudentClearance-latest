@@ -141,6 +141,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ImageCache.cs" />
     <Compile Include="ClearanceHub.cs" />
     <Compile Include="EditProfileForm.cs">
       <SubType>Form</SubType>

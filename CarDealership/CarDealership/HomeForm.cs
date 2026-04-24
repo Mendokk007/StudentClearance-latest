@@ -21,6 +21,11 @@ namespace CarDealership
         private HubConnection _hubConnection;
         private Timer _refreshTimer;
 
+        // ✅ NEW FIELDS for AppContext integration
+        private AppContext _appContext;
+        private bool _loggedOut = false;
+        public bool LoggedOut => _loggedOut;
+
         private PictureBox pbProfilePicture;
         private LinkLabel lnkEditProfile;
         private Label lblUserGreetingText;
@@ -79,10 +84,15 @@ namespace CarDealership
             InitializeSignalR();
             SetupNotificationPolling();
 
-            // Force update notification badge after form is fully displayed
             this.Shown += (s, e) => {
                 UpdateNotificationBadge();
             };
+        }
+
+        // ✅ NEW METHOD
+        public void SetAppContext(AppContext ctx)
+        {
+            _appContext = ctx;
         }
 
         private void MakeDraggable(Control control)
@@ -122,17 +132,12 @@ namespace CarDealership
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.Parameters.AddWithValue("@Username", _username);
-
                         _unreadNotificationCount = (int)cmd.ExecuteScalar();
 
                         if (this.InvokeRequired)
-                        {
                             this.Invoke((Action)(() => ApplyNotificationBadgeState()));
-                        }
                         else
-                        {
                             ApplyNotificationBadgeState();
-                        }
                     }
                 }
             }
@@ -224,10 +229,7 @@ namespace CarDealership
             btnViewNotifications.Cursor = Cursors.Hand;
             btnViewNotifications.Click += (s, e) => {
                 pnlNotifications.Visible = !pnlNotifications.Visible;
-                if (pnlNotifications.Visible)
-                {
-                    LoadNotifications();
-                }
+                if (pnlNotifications.Visible) LoadNotifications();
             };
             pnlTopBar.Controls.Add(btnViewNotifications);
 
@@ -244,10 +246,7 @@ namespace CarDealership
             lblNotificationBadge.Cursor = Cursors.Hand;
             lblNotificationBadge.Click += (s, e) => {
                 pnlNotifications.Visible = !pnlNotifications.Visible;
-                if (pnlNotifications.Visible)
-                {
-                    LoadNotifications();
-                }
+                if (pnlNotifications.Visible) LoadNotifications();
             };
 
             lblNotificationBadge.Paint += (s, e) => {
@@ -261,33 +260,24 @@ namespace CarDealership
 
             pnlTopBar.Controls.Add(lblNotificationBadge);
             lblNotificationBadge.BringToFront();
-
             this.Controls.Add(pnlNotifications);
             pnlNotifications.BringToFront();
         }
 
-        private void LstNotifications_MeasureItem(object sender, MeasureItemEventArgs e)
-        {
-            e.ItemHeight = 50;
-        }
+        private void LstNotifications_MeasureItem(object sender, MeasureItemEventArgs e) => e.ItemHeight = 50;
 
         private void LstNotifications_DrawItem(object sender, DrawItemEventArgs e)
         {
             if (e.Index < 0) return;
-
             e.DrawBackground();
             var notification = lstNotifications.Items[e.Index] as dynamic;
             if (notification != null)
             {
                 using (var brush = new SolidBrush(e.ForeColor))
-                {
                     e.Graphics.DrawString(notification.Message, e.Font, brush, e.Bounds.X + 5, e.Bounds.Y + 5);
-                }
                 using (var smallFont = new Font("Segoe UI", 8))
                 using (var grayBrush = new SolidBrush(Color.FromArgb(185, 187, 190)))
-                {
                     e.Graphics.DrawString(notification.CreatedAt.ToString("MMM dd, HH:mm"), smallFont, grayBrush, e.Bounds.X + 5, e.Bounds.Y + 28);
-                }
             }
             e.DrawFocusRectangle();
         }
@@ -308,14 +298,10 @@ namespace CarDealership
                 }
                 lstNotifications.Items.Clear();
                 pnlNotifications.Visible = false;
-
                 _unreadNotificationCount = 0;
                 ApplyNotificationBadgeState();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error marking notifications read: " + ex.Message);
-            }
+            catch (Exception ex) { Console.WriteLine("Error marking notifications read: " + ex.Message); }
         }
 
         private void LoadNotifications()
@@ -346,64 +332,31 @@ namespace CarDealership
                 }
                 UpdateNotificationBadge();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error loading notifications: " + ex.Message);
-            }
+            catch (Exception ex) { Console.WriteLine("Error loading notifications: " + ex.Message); }
         }
 
         private void AddProfileSection()
         {
-            pnlProfileContainer = new Panel();
-            pnlProfileContainer.Size = new Size(250, 70);
-            pnlProfileContainer.Location = new Point(0, 0);
-            pnlProfileContainer.BackColor = Color.Transparent;
+            pnlProfileContainer = new Panel { Size = new Size(250, 70), Location = new Point(0, 0), BackColor = Color.Transparent };
             MakeDraggable(pnlProfileContainer);
 
-            pbProfilePicture = new PictureBox();
-            pbProfilePicture.Size = new Size(50, 50);
-            pbProfilePicture.Location = new Point(15, 10);
-            pbProfilePicture.SizeMode = PictureBoxSizeMode.Zoom;
-            pbProfilePicture.BackColor = Color.Transparent;
-            pbProfilePicture.Cursor = Cursors.Hand;
+            pbProfilePicture = new PictureBox { Size = new Size(50, 50), Location = new Point(15, 10), SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.Transparent, Cursor = Cursors.Hand };
             pbProfilePicture.Click += PbProfilePicture_Click;
             MakeDraggable(pbProfilePicture);
 
-            var lblWelcome = new Label();
-            lblWelcome.Text = "Welcome,";
-            lblWelcome.Location = new Point(75, 12);
-            lblWelcome.Size = new Size(60, 15);
-            lblWelcome.Font = new Font("Segoe UI", 9F);
-            lblWelcome.ForeColor = Color.FromArgb(185, 187, 190);
-            lblWelcome.BackColor = Color.Transparent;
+            var lblWelcome = new Label { Text = "Welcome,", Location = new Point(75, 12), Size = new Size(60, 15), Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(185, 187, 190), BackColor = Color.Transparent };
             MakeDraggable(lblWelcome);
 
-            lblUserGreetingText = new Label();
-            lblUserGreetingText.Location = new Point(75, 30);
-            lblUserGreetingText.Size = new Size(160, 20);
-            lblUserGreetingText.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            lblUserGreetingText.ForeColor = Color.White;
-            lblUserGreetingText.BackColor = Color.Transparent;
-            lblUserGreetingText.Text = _username;
+            lblUserGreetingText = new Label { Location = new Point(75, 30), Size = new Size(160, 20), Font = new Font("Segoe UI", 11F, FontStyle.Bold), ForeColor = Color.White, BackColor = Color.Transparent, Text = _username };
             MakeDraggable(lblUserGreetingText);
 
-            lnkEditProfile = new LinkLabel();
-            lnkEditProfile.Text = "Edit Profile";
-            lnkEditProfile.Location = new Point(75, 50);
-            lnkEditProfile.Size = new Size(70, 15);
-            lnkEditProfile.Font = new Font("Segoe UI", 8F);
-            lnkEditProfile.LinkColor = Color.FromArgb(240, 71, 71);
-            lnkEditProfile.ActiveLinkColor = Color.FromArgb(217, 55, 55);
-            lnkEditProfile.VisitedLinkColor = Color.FromArgb(240, 71, 71);
-            lnkEditProfile.Cursor = Cursors.Hand;
-            lnkEditProfile.BackColor = Color.Transparent;
+            lnkEditProfile = new LinkLabel { Text = "Edit Profile", Location = new Point(75, 50), Size = new Size(70, 15), Font = new Font("Segoe UI", 8F), LinkColor = Color.FromArgb(240, 71, 71), ActiveLinkColor = Color.FromArgb(217, 55, 55), VisitedLinkColor = Color.FromArgb(240, 71, 71), Cursor = Cursors.Hand, BackColor = Color.Transparent };
             lnkEditProfile.LinkClicked += LnkEditProfile_LinkClicked;
 
             pnlProfileContainer.Controls.Add(pbProfilePicture);
             pnlProfileContainer.Controls.Add(lblWelcome);
             pnlProfileContainer.Controls.Add(lblUserGreetingText);
             pnlProfileContainer.Controls.Add(lnkEditProfile);
-
             pnlTopBar.Controls.Add(pnlProfileContainer);
         }
 
@@ -413,10 +366,8 @@ namespace CarDealership
             if (!File.Exists(logoPath))
             {
                 string logosFolder = Path.Combine(Application.StartupPath, "Logos");
-                if (Directory.Exists(logosFolder))
-                    logoPath = Path.Combine(logosFolder, "logo.png");
+                if (Directory.Exists(logosFolder)) logoPath = Path.Combine(logosFolder, "logo.png");
             }
-
             if (File.Exists(logoPath))
             {
                 try
@@ -472,28 +423,16 @@ namespace CarDealership
                             {
                                 string fullName = reader["FullName"] != DBNull.Value ? reader["FullName"].ToString() : null;
                                 lblUserGreetingText.Text = string.IsNullOrEmpty(fullName) ? _username : fullName;
-
                                 if (reader["ProfileImage"] != DBNull.Value)
-                                {
-                                    byte[] imageData = (byte[])reader["ProfileImage"];
-                                    DisplayProfileImage(imageData);
-                                }
-                                else { CreateDefaultProfileImage(); }
+                                    DisplayProfileImage((byte[])reader["ProfileImage"]);
+                                else CreateDefaultProfileImage();
                             }
-                            else
-                            {
-                                lblUserGreetingText.Text = _username;
-                                CreateDefaultProfileImage();
-                            }
+                            else { CreateDefaultProfileImage(); }
                         }
                     }
                 }
             }
-            catch
-            {
-                lblUserGreetingText.Text = _username;
-                CreateDefaultProfileImage();
-            }
+            catch { CreateDefaultProfileImage(); }
         }
 
         private void DisplayProfileImage(byte[] imageData)
@@ -504,9 +443,7 @@ namespace CarDealership
                 {
                     using (var ms = new MemoryStream(imageData))
                     using (var img = Image.FromStream(ms))
-                    {
                         pbProfilePicture.Image = MakeCircularImage(img, 50, 50);
-                    }
                 }
                 catch { CreateDefaultProfileImage(); }
             }
@@ -554,8 +491,7 @@ namespace CarDealership
         private void OpenEditProfileForm()
         {
             var editForm = new EditProfileForm(_connectionString, _username);
-            if (editForm.ShowDialog() == DialogResult.OK)
-                LoadUserGreeting();
+            if (editForm.ShowDialog() == DialogResult.OK) LoadUserGreeting();
         }
 
         private void SetupClearanceSystem()
@@ -576,7 +512,6 @@ namespace CarDealership
             {
                 _hubConnection = new HubConnection("http://localhost:8080/");
                 _hubProxy = _hubConnection.CreateHubProxy("clearanceHub");
-
                 _hubProxy.On<string, string>("statusUpdated", (department, status) =>
                 {
                     this.Invoke((Action)(() =>
@@ -587,7 +522,6 @@ namespace CarDealership
                         UpdateNotificationBadge();
                     }));
                 });
-
                 await _hubConnection.Start();
                 await _hubProxy.Invoke("JoinStudentGroup", _username);
             }
@@ -600,8 +534,7 @@ namespace CarDealership
 
         private void SetupPollingTimer()
         {
-            _refreshTimer = new Timer();
-            _refreshTimer.Interval = 5000;
+            _refreshTimer = new Timer { Interval = 5000 };
             _refreshTimer.Tick += (s, e) => LoadClearanceStatusFromDB();
             _refreshTimer.Start();
         }
@@ -617,18 +550,14 @@ namespace CarDealership
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.Parameters.AddWithValue("@Username", _username);
-
                         using (var reader = cmd.ExecuteReader())
                         {
                             while (reader.Read())
                             {
                                 string dept = reader["DepartmentName"].ToString();
                                 string status = reader["Status"].ToString();
-
                                 if (status != "Pending")
-                                {
                                     UpdateDepartmentStatus(dept, status);
-                                }
                                 else
                                 {
                                     var controls = GetDepartmentControls(dept);
@@ -647,10 +576,7 @@ namespace CarDealership
                 }
                 UpdateOverallProgress();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error loading status: " + ex.Message);
-            }
+            catch (Exception ex) { Console.WriteLine("Error loading status: " + ex.Message); }
         }
 
         private void UpdateDepartmentStatus(string department, string status)
@@ -659,7 +585,6 @@ namespace CarDealership
             if (controls.submitButton != null)
             {
                 _clearanceStatus[department] = (status == "Approved");
-
                 if (status == "Approved")
                 {
                     controls.submitButton.Text = "Approved";
@@ -701,10 +626,8 @@ namespace CarDealership
             {
                 var controls = GetDepartmentControls(dept);
                 if (controls.statusLabel != null)
-                {
                     if (controls.statusLabel.Text == "Approved" || controls.statusLabel.Text == "Pending Review")
                         submittedCount++;
-                }
             }
             progressOverall.Maximum = 6;
             progressOverall.Value = submittedCount;
@@ -718,7 +641,6 @@ namespace CarDealership
                 MessageBox.Show($"{department} clearance has already been approved.", "Already Approved", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
-
             var result = MessageBox.Show($"Do you want to submit an image for {department} clearance?", "Confirm Submission", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.Yes && _openFileDialog.ShowDialog() == DialogResult.OK)
             {
@@ -734,9 +656,7 @@ namespace CarDealership
                             fs.Read(imageData, 0, imageData.Length);
                         }
                     }
-
                     string fileName = Path.GetFileName(_openFileDialog.FileName);
-
                     using (var conn = new SqlConnection(_connectionString))
                     {
                         conn.Open();
@@ -750,24 +670,16 @@ namespace CarDealership
                             cmd.ExecuteNonQuery();
                         }
                     }
-
                     submitButton.Text = "Submitted!";
                     submitButton.BackColor = Color.FromArgb(255, 193, 7);
                     submitButton.Enabled = false;
                     statusLabel.Text = "Pending Review";
                     statusLabel.ForeColor = Color.FromArgb(255, 193, 7);
-
                     UpdateOverallProgress();
                     MessageBox.Show($"{department} clearance submitted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-                catch (ArgumentException)
-                {
-                    MessageBox.Show("The selected file is not a valid image.", "Invalid Image", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                catch (ArgumentException) { MessageBox.Show("The selected file is not a valid image.", "Invalid Image", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                catch (Exception ex) { MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             }
         }
 
@@ -778,15 +690,17 @@ namespace CarDealership
         private void btnDeanSubmit_Click(object sender, EventArgs e) => HandleSubmission("Dean's Office", btnDeanSubmit, lblDeanStatus);
         private void btnRecordsSubmit_Click(object sender, EventArgs e) => HandleSubmission("Records", btnRecordsSubmit, lblRecordsStatus);
 
+        // ✅ FIXED LOGOUT — creates fresh LoginForm, closes HomeForm
         private void btnLogout_Click(object sender, EventArgs e)
         {
-            var result = MessageBox.Show("Are you sure you want to logout?", "Confirm Logout", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            var result = MessageBox.Show("Are you sure you want to logout?", "Confirm Logout",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.Yes)
             {
+                _loggedOut = true;
                 _hubConnection?.Stop();
                 _refreshTimer?.Stop();
-                var login = new LoginForm();
-                login.Show();
+                _appContext?.OpenLoginForm();
                 this.Close();
             }
         }

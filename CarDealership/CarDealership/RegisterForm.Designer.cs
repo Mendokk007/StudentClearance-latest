@@ -3,160 +3,124 @@
     partial class RegisterForm
     {
         private System.ComponentModel.IContainer components = null;
-
-        private System.Windows.Forms.Label lblRegTitle;
-        private System.Windows.Forms.Label lblRegUsername;
+        private System.Windows.Forms.Panel pnlMain;
+        private System.Windows.Forms.Button btnClose;
         private System.Windows.Forms.TextBox txtRegUsername;
-        private System.Windows.Forms.Label lblRegPassword;
         private System.Windows.Forms.TextBox txtRegPassword;
-        private System.Windows.Forms.Label lblConfirmPassword;
-        private System.Windows.Forms.TextBox txtConfirmPassword;
+        private System.Windows.Forms.TextBox txtProgram;
         private System.Windows.Forms.Button btnRegister;
-        private System.Windows.Forms.Button btnCancel;
+        private System.Windows.Forms.Label lblBackToLogin;
+        private System.Windows.Forms.Button btnDarkMode;
+        private System.Windows.Forms.Label lblHeaderSink;
+        private System.Windows.Forms.Label lblStudentIDNote;
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
+            if (disposing && (components != null)) components.Dispose();
             base.Dispose(disposing);
         }
 
         private void InitializeComponent()
         {
-            this.lblRegTitle = new System.Windows.Forms.Label();
-            this.lblRegUsername = new System.Windows.Forms.Label();
+            this.pnlMain = new System.Windows.Forms.Panel();
+            this.btnClose = new System.Windows.Forms.Button();
             this.txtRegUsername = new System.Windows.Forms.TextBox();
-            this.lblRegPassword = new System.Windows.Forms.Label();
+            this.lblStudentIDNote = new System.Windows.Forms.Label();
             this.txtRegPassword = new System.Windows.Forms.TextBox();
-            this.lblConfirmPassword = new System.Windows.Forms.Label();
-            this.txtConfirmPassword = new System.Windows.Forms.TextBox();
+            this.txtProgram = new System.Windows.Forms.TextBox();
             this.btnRegister = new System.Windows.Forms.Button();
-            this.btnCancel = new System.Windows.Forms.Button();
+            this.lblBackToLogin = new System.Windows.Forms.Label();
+            this.btnDarkMode = new System.Windows.Forms.Button();
+            this.lblHeaderSink = new System.Windows.Forms.Label();
             this.SuspendLayout();
 
-            // lblRegTitle
-            this.lblRegTitle.AutoSize = true;
-            this.lblRegTitle.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
-            this.lblRegTitle.ForeColor = System.Drawing.Color.White;
-            this.lblRegTitle.Location = new System.Drawing.Point(20, 20);
-            this.lblRegTitle.Name = "lblRegTitle";
-            this.lblRegTitle.Size = new System.Drawing.Size(200, 25);
-            this.lblRegTitle.TabIndex = 0;
-            this.lblRegTitle.Text = "Create Student Account";
+            this.ClientSize = new System.Drawing.Size(900, 620);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.HandleDragging);
 
-            // lblRegUsername
-            this.lblRegUsername.AutoSize = true;
-            this.lblRegUsername.ForeColor = System.Drawing.Color.White;
-            this.lblRegUsername.Location = new System.Drawing.Point(30, 70);
-            this.lblRegUsername.Name = "lblRegUsername";
-            this.lblRegUsername.Size = new System.Drawing.Size(63, 15);
-            this.lblRegUsername.TabIndex = 1;
-            this.lblRegUsername.Text = "Username:";
+            this.pnlMain.Width = 380;
+            this.pnlMain.Dock = System.Windows.Forms.DockStyle.Right;
+            this.pnlMain.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlMain_Paint);
+            this.pnlMain.MouseDown += new System.Windows.Forms.MouseEventHandler(this.HandleDragging);
 
-            // txtRegUsername
-            this.txtRegUsername.BackColor = System.Drawing.Color.FromArgb(64, 68, 75);
-            this.txtRegUsername.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtRegUsername.ForeColor = System.Drawing.Color.White;
-            this.txtRegUsername.Location = new System.Drawing.Point(130, 67);
-            this.txtRegUsername.Name = "txtRegUsername";
-            this.txtRegUsername.Size = new System.Drawing.Size(180, 23);
-            this.txtRegUsername.TabIndex = 2;
+            // Student ID textbox
+            this.txtRegUsername.Location = new System.Drawing.Point(60, 245);
+            this.txtRegUsername.Size = new System.Drawing.Size(260, 30);
+            this.txtRegUsername.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.txtRegUsername.Font = new System.Drawing.Font("Segoe UI", 14F);
+            this.txtRegUsername.ReadOnly = true;
+            this.txtRegUsername.TabStop = false;
+            this.txtRegUsername.Enter += new System.EventHandler(this.Field_Enter);
+            this.txtRegUsername.Leave += new System.EventHandler(this.Field_Leave);
 
-            // lblRegPassword
-            this.lblRegPassword.AutoSize = true;
-            this.lblRegPassword.ForeColor = System.Drawing.Color.White;
-            this.lblRegPassword.Location = new System.Drawing.Point(30, 110);
-            this.lblRegPassword.Name = "lblRegPassword";
-            this.lblRegPassword.Size = new System.Drawing.Size(60, 15);
-            this.lblRegPassword.TabIndex = 3;
-            this.lblRegPassword.Text = "Password:";
+            // "Student ID (Auto-assigned)" label — BELOW the textbox
+            this.lblStudentIDNote.AutoSize = true;
+            this.lblStudentIDNote.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblStudentIDNote.ForeColor = System.Drawing.Color.FromArgb(185, 187, 190);
+            this.lblStudentIDNote.Location = new System.Drawing.Point(62, 278);
+            this.lblStudentIDNote.Text = "Student ID (Auto-assigned)";
+            this.lblStudentIDNote.BackColor = System.Drawing.Color.Transparent;
 
-            // txtRegPassword
-            this.txtRegPassword.BackColor = System.Drawing.Color.FromArgb(64, 68, 75);
-            this.txtRegPassword.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtRegPassword.ForeColor = System.Drawing.Color.White;
-            this.txtRegPassword.Location = new System.Drawing.Point(130, 107);
-            this.txtRegPassword.Name = "txtRegPassword";
-            this.txtRegPassword.Size = new System.Drawing.Size(180, 23);
-            this.txtRegPassword.TabIndex = 4;
+            // Password textbox
+            this.txtRegPassword.Location = new System.Drawing.Point(60, 305);
+            this.txtRegPassword.Size = new System.Drawing.Size(260, 30);
+            this.txtRegPassword.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.txtRegPassword.Font = new System.Drawing.Font("Segoe UI", 14F);
             this.txtRegPassword.UseSystemPasswordChar = true;
+            this.txtRegPassword.Enter += new System.EventHandler(this.Field_Enter);
+            this.txtRegPassword.Leave += new System.EventHandler(this.Field_Leave);
 
-            // lblConfirmPassword
-            this.lblConfirmPassword.AutoSize = true;
-            this.lblConfirmPassword.ForeColor = System.Drawing.Color.White;
-            this.lblConfirmPassword.Location = new System.Drawing.Point(30, 150);
-            this.lblConfirmPassword.Name = "lblConfirmPassword";
-            this.lblConfirmPassword.Size = new System.Drawing.Size(107, 15);
-            this.lblConfirmPassword.TabIndex = 5;
-            this.lblConfirmPassword.Text = "Confirm Password:";
+            // Program textbox
+            this.txtProgram.Location = new System.Drawing.Point(60, 365);
+            this.txtProgram.Size = new System.Drawing.Size(260, 30);
+            this.txtProgram.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.txtProgram.Font = new System.Drawing.Font("Segoe UI", 14F);
+            this.txtProgram.Enter += new System.EventHandler(this.Field_Enter);
+            this.txtProgram.Leave += new System.EventHandler(this.Field_Leave);
 
-            // txtConfirmPassword
-            this.txtConfirmPassword.BackColor = System.Drawing.Color.FromArgb(64, 68, 75);
-            this.txtConfirmPassword.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtConfirmPassword.ForeColor = System.Drawing.Color.White;
-            this.txtConfirmPassword.Location = new System.Drawing.Point(130, 147);
-            this.txtConfirmPassword.Name = "txtConfirmPassword";
-            this.txtConfirmPassword.Size = new System.Drawing.Size(180, 23);
-            this.txtConfirmPassword.TabIndex = 6;
-            this.txtConfirmPassword.UseSystemPasswordChar = true;
-
-            // btnRegister
-            this.btnRegister.BackColor = System.Drawing.Color.FromArgb(240, 71, 71);
-            this.btnRegister.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnRegister.FlatAppearance.BorderSize = 0;
+            this.btnRegister.Location = new System.Drawing.Point(60, 430);
+            this.btnRegister.Size = new System.Drawing.Size(260, 50);
             this.btnRegister.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnRegister.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.btnRegister.ForeColor = System.Drawing.Color.White;
-            this.btnRegister.Location = new System.Drawing.Point(130, 190);
-            this.btnRegister.Name = "btnRegister";
-            this.btnRegister.Size = new System.Drawing.Size(100, 35);
-            this.btnRegister.TabIndex = 7;
-            this.btnRegister.Text = "Register";
-            this.btnRegister.UseVisualStyleBackColor = false;
+            this.btnRegister.FlatAppearance.BorderSize = 0;
+            this.btnRegister.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.btnRegister.Text = "REGISTER";
             this.btnRegister.Click += new System.EventHandler(this.btnRegister_Click);
-            this.btnRegister.MouseEnter += new System.EventHandler(this.btnRegister_MouseEnter);
-            this.btnRegister.MouseLeave += new System.EventHandler(this.btnRegister_MouseLeave);
 
-            // btnCancel
-            this.btnCancel.BackColor = System.Drawing.Color.FromArgb(74, 79, 87);
-            this.btnCancel.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnCancel.FlatAppearance.BorderSize = 0;
-            this.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnCancel.ForeColor = System.Drawing.Color.White;
-            this.btnCancel.Location = new System.Drawing.Point(235, 192);
-            this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(80, 30);
-            this.btnCancel.TabIndex = 8;
-            this.btnCancel.Text = "Cancel";
-            this.btnCancel.UseVisualStyleBackColor = false;
-            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            this.btnCancel.MouseEnter += new System.EventHandler(this.btnCancel_MouseEnter);
-            this.btnCancel.MouseLeave += new System.EventHandler(this.btnCancel_MouseLeave);
+            this.lblBackToLogin.Text = "Already have an account? Login";
+            this.lblBackToLogin.Location = new System.Drawing.Point(60, 495);
+            this.lblBackToLogin.AutoSize = true;
+            this.lblBackToLogin.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.lblBackToLogin.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblBackToLogin.Click += new System.EventHandler(this.lblBackToLogin_Click);
 
-            // RegisterForm
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.FromArgb(54, 57, 63);
-            this.ClientSize = new System.Drawing.Size(350, 260);
-            this.Controls.Add(this.btnCancel);
-            this.Controls.Add(this.btnRegister);
-            this.Controls.Add(this.txtConfirmPassword);
-            this.Controls.Add(this.lblConfirmPassword);
-            this.Controls.Add(this.txtRegPassword);
-            this.Controls.Add(this.lblRegPassword);
-            this.Controls.Add(this.txtRegUsername);
-            this.Controls.Add(this.lblRegUsername);
-            this.Controls.Add(this.lblRegTitle);
-            this.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.Name = "RegisterForm";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Register - Student Clearance System";
-            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.RegisterForm_KeyDown);
+            this.btnDarkMode.Location = new System.Drawing.Point(265, 580);
+            this.btnDarkMode.Size = new System.Drawing.Size(100, 25);
+            this.btnDarkMode.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnDarkMode.FlatAppearance.BorderSize = 0;
+            this.btnDarkMode.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
+            this.btnDarkMode.Click += new System.EventHandler(this.btnDarkMode_Click);
+
+            this.btnClose.Location = new System.Drawing.Point(340, 5);
+            this.btnClose.Size = new System.Drawing.Size(35, 35);
+            this.btnClose.Text = "X";
+            this.btnClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnClose.FlatAppearance.BorderSize = 0;
+            this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
+
+            this.pnlMain.Controls.AddRange(new System.Windows.Forms.Control[] {
+                this.btnClose,
+                this.txtRegUsername,
+                this.lblStudentIDNote,
+                this.txtRegPassword,
+                this.txtProgram,
+                this.btnRegister,
+                this.lblBackToLogin,
+                this.btnDarkMode
+            });
+
+            this.Controls.Add(this.pnlMain);
             this.ResumeLayout(false);
             this.PerformLayout();
         }

@@ -1,4 +1,4 @@
-# Car Dealership Database Setup
+# Student Clearance Database Setup
 
 ## Instructions
 
@@ -20,7 +20,7 @@
 USE master;
 GO
 
--- Drop database if it exists (optional - remove if you want to keep existing data)
+-- Drop database if it exists
 IF EXISTS (SELECT name FROM sys.databases WHERE name = 'StudentClearanceDB')
 BEGIN
     ALTER DATABASE StudentClearanceDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
@@ -41,6 +41,12 @@ GO
 -- CREATE TABLES
 -- =============================================
 
+-- Student ID counter table (tracks next available ID number)
+CREATE TABLE StudentIDCounter (
+    LastNumber INT NOT NULL DEFAULT 0
+);
+GO
+
 -- Users table (both students and admins)
 CREATE TABLE Users (
     UserID INT IDENTITY(1,1) PRIMARY KEY,
@@ -48,9 +54,10 @@ CREATE TABLE Users (
     Password NVARCHAR(100) NOT NULL,
     FullName NVARCHAR(100) NULL,
     Email NVARCHAR(100) NULL,
+    Program NVARCHAR(50) NULL,        -- Student program (e.g., BSIT, BSCS)
     ProfileImage VARBINARY(MAX) NULL,
     Role NVARCHAR(20) NOT NULL DEFAULT 'Student',
-    Department NVARCHAR(50) NULL,
+    Department NVARCHAR(50) NULL,     -- For admins only (e.g., Library, SAO)
     CreatedAt DATETIME DEFAULT GETDATE()
 );
 GO
@@ -97,6 +104,10 @@ GO
 -- INSERT INITIAL DATA
 -- =============================================
 
+-- Initialize Student ID counter (starts at 0, first student gets STUD001)
+INSERT INTO StudentIDCounter (LastNumber) VALUES (0);
+GO
+
 -- Insert departments
 INSERT INTO Departments (DepartmentName, Description, DisplayOrder) VALUES
 ('Library', 'Library clearance for borrowed books', 1),
@@ -108,23 +119,55 @@ INSERT INTO Departments (DepartmentName, Description, DisplayOrder) VALUES
 GO
 
 -- Insert admin accounts (Password: admin123)
-INSERT INTO Users (Username, Password, FullName, Role, Department) VALUES
-('admin_library', 'admin123', 'Library Administrator', 'Admin', 'Library'),
-('admin_sao', 'admin123', 'SAO Administrator', 'Admin', 'SAO'),
-('admin_cashier', 'admin123', 'Cashier Administrator', 'Admin', 'Cashier'),
-('admin_accounting', 'admin123', 'Accounting Administrator', 'Admin', 'Accounting'),
-('admin_dean', 'admin123', 'Dean''s Office Administrator', 'Admin', 'Dean''s Office'),
-('admin_records', 'admin123', 'Records Administrator', 'Admin', 'Records');
+-- Admins keep their custom usernames, not auto-generated IDs
+INSERT INTO Users (Username, Password, FullName, Role, Department, Program) VALUES
+('admin_library', 'admin123', 'Library Administrator', 'Admin', 'Library', NULL),
+('admin_sao', 'admin123', 'SAO Administrator', 'Admin', 'SAO', NULL),
+('admin_cashier', 'admin123', 'Cashier Administrator', 'Admin', 'Cashier', NULL),
+('admin_accounting', 'admin123', 'Accounting Administrator', 'Admin', 'Accounting', NULL),
+('admin_dean', 'admin123', 'Dean''s Office Administrator', 'Admin', 'Dean''s Office', NULL),
+('admin_records', 'admin123', 'Records Administrator', 'Admin', 'Records', NULL);
 GO
 
 -- Insert test student account (Password: student123)
-INSERT INTO Users (Username, Password, FullName, Role) VALUES
-('student1', 'student123', 'John Doe', 'Student');
+-- This simulates a student who registered and got STUD001
+INSERT INTO Users (Username, Password, FullName, Role, Program) VALUES
+('STUD001', 'student123', 'John Doe', 'Student', 'BSIT');
+GO
+
+-- Update counter to 1 so next student gets STUD002
+UPDATE StudentIDCounter SET LastNumber = 1;
 GO
 
 -- =============================================
 -- CREATE STORED PROCEDURES
 -- =============================================
+
+-- Generate next Student ID (STUD001, STUD002, etc.)
+CREATE PROCEDURE sp_GenerateStudentID
+    @NewStudentID NVARCHAR(50) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @NextNumber INT;
+    
+    -- Atomically increment and get the next number
+    UPDATE StudentIDCounter
+    SET @NextNumber = LastNumber + 1,
+        LastNumber = LastNumber + 1;
+    
+    -- Format as STUD001, STUD002, ..., STUD999, STUD1000, etc.
+    IF @NextNumber < 10
+        SET @NewStudentID = 'STUD00' + CAST(@NextNumber AS NVARCHAR);
+    ELSE IF @NextNumber < 100
+        SET @NewStudentID = 'STUD0' + CAST(@NextNumber AS NVARCHAR);
+    ELSE IF @NextNumber < 1000
+        SET @NewStudentID = 'STUD' + CAST(@NextNumber AS NVARCHAR);
+    ELSE
+        SET @NewStudentID = 'STUD' + CAST(@NextNumber AS NVARCHAR); -- 4+ digits
+END
+GO
 
 -- Get student clearance status
 CREATE PROCEDURE sp_GetStudentClearanceStatus
@@ -236,6 +279,7 @@ BEGIN
         cs.SubmissionID,
         cs.StudentUsername,
         u.FullName AS StudentName,
+        u.Program AS StudentProgram,
         cs.ImageData,
         cs.ImageFileName,
         cs.SubmittedAt,
@@ -263,8 +307,11 @@ PRINT '========================================';
 PRINT 'DATABASE SETUP COMPLETE!';
 PRINT '========================================';
 PRINT 'Test Accounts:';
-PRINT '  STUDENT: username = student1, password = student123';
+PRINT '  STUDENT: Student ID = STUD001, password = student123, Program = BSIT';
 PRINT '  ADMIN (Library): username = admin_library, password = admin123';
+PRINT '';
+PRINT 'Auto-Generated Student IDs:';
+PRINT '  STUD001, STUD002, STUD003, ...';
 PRINT '========================================';
 GO
 

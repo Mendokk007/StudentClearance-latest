@@ -18,6 +18,7 @@ namespace CarDealership
         private HubConnection _hubConnection;
         private Timer _notificationTimer;
         private bool _signalRConnected = false;
+        private AppContext _appContext;
 
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
@@ -44,6 +45,11 @@ namespace CarDealership
             InitializeSignalR();
             LoadPendingSubmissions();
             SetupNotificationTimer();
+        }
+
+        public void SetAppContext(AppContext ctx)
+        {
+            _appContext = ctx;
         }
 
         private void MakeDraggable(Control control)
@@ -243,6 +249,10 @@ namespace CarDealership
             _notificationTimer?.Stop();
 
             var login = new LoginForm();
+            if (_appContext != null)
+            {
+                login.SetAppContext(_appContext);
+            }
             login.Show();
             this.Close();
         }

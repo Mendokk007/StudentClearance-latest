@@ -256,7 +256,10 @@ namespace CarDealership
                             }
                             else if (role == "Admin")
                             {
-                                MessageBox.Show("Admin login successful! Admin panel coming soon.", "Welcome Admin", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                NavigatedAway = true;
+                                this.Close();
+                                AdminForm adminForm = new AdminForm(_connectionString, username);
+                                adminForm.Show();
                             }
                         }
                         else

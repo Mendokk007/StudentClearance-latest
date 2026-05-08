@@ -15,9 +15,9 @@
 4. Run `setup.exe` to install the application.
 *Note: If Windows shows a "Protected your PC" warning, click **More Info** then **Run Anyway**.*
 
+---
 
-
-## Instructions (for Devs)
+## 🚀🚀Instructions (for Devs)
 
 1. Open **SQL Server Management Studio (SSMS)**
 2. Connect to your SQL Server instance

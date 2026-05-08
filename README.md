@@ -24,12 +24,13 @@
 
 > [!IMPORTANT]
 > If Windows shows a "Protected your PC" warning during installation, click **More Info** then **Run Anyway**.
+
 <a href="https://www.virustotal.com/gui/file/acedddd4893913b69de3f89683dd7c728d8eda8d33235de659d98703369bc38c" target="_blank">
   <img src="https://img.shields.io/badge/VirusTotal-Verified_Clean-0070ad?style=for-the-badge&logo=virustotal&logoColor=white" alt="VirusTotal Scan Result">
-</a>
+</a> 
 <a href="https://www.virustotal.com/gui/file/572be7a08e2b55ba3e2032f1ae610b1f8610a0716d373e8a92e8f2061c97f654" target="_blank">
   <img src="https://img.shields.io/badge/VirusTotal-Verified_Clean-0070ad?style=for-the-badge&logo=virustotal&logoColor=white" alt="VirusTotal Scan Result">
-</a>
+</a> 
 <br>
 
 `Scan performed on the installer package and the setup.exe to ensure it is free from malware and safe for use.`

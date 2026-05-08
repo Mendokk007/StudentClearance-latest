@@ -1,6 +1,13 @@
 # Student Clearance Database Setup
 
-## Instructions
+## 🚀 How to Install (for users)
+1. Go to the [Releases](https://github.com/Mendokk007/StudentClearance-latest/releases) page.
+2. Download `StudentClearance_v1.0_Installer.zip`.
+3. Extract the ZIP file to a folder on your computer.
+4. Run `setup.exe` to install the application.
+*Note: If Windows shows a "Protected your PC" warning, click **More Info** then **Run Anyway**.*
+
+## Instructions (for devs)
 
 1. Open **SQL Server Management Studio (SSMS)**
 2. Connect to your SQL Server instance

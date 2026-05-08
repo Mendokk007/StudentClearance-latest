@@ -3,7 +3,7 @@
 ## 🚀 How to Install (for Users)
 
 ### 1. Database Setup (Required First)
-Before running the application, you must set up the SQL database:
+`Before running the application, you must set up the SQL database:`
 1.  Ensure you have **SQL Server Express** or **LocalDB** installed.
 2.  **Download the Setup Script:**
     <br>
@@ -28,7 +28,8 @@ Before running the application, you must set up the SQL database:
   <img src="https://img.shields.io/badge/VirusTotal-Verified_Clean-0070ad?style=for-the-badge&logo=virustotal&logoColor=white" alt="VirusTotal Scan Result">
 </a>
 <br>
-*Scan performed on the installer package to ensure it is free from malware and safe for use.*
+
+`Scan performed on the installer package to ensure it is free from malware and safe for use.`
 
 ---
 

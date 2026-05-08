@@ -71,21 +71,17 @@ namespace CarDealership
 
         public void SetAppContext(AppContext ctx) => _appContext = ctx;
 
-        // ✅ FIXED: Only attach defocus to non-textbox controls
         private void SetupDefocusHandlers()
         {
-            // Form and panel background clicks
             this.MouseClick += (s, e) => DefocusAll();
             pnlMain.MouseClick += (s, e) => DefocusAll();
 
-            // Only attach to NON-textbox controls
             btnLogin.MouseClick += (s, e) => DefocusAll();
             lblRegister.MouseClick += (s, e) => DefocusAll();
             btnDarkMode.MouseClick += (s, e) => DefocusAll();
             btnClose.MouseClick += (s, e) => DefocusAll();
             lblHeaderSink.MouseClick += (s, e) => DefocusAll();
 
-            // Textbox lost focus
             txtUsername.LostFocus += (s, e) => { focusedField = ""; pnlMain.Invalidate(); };
             txtPassword.LostFocus += (s, e) => { focusedField = ""; pnlMain.Invalidate(); };
         }
@@ -102,12 +98,22 @@ namespace CarDealership
 
         private void LoginForm_Load(object sender, EventArgs e)
         {
+            // Clear any cached data
+            txtUsername.Clear();
+            txtPassword.Clear();
+            focusedField = "";
+            NavigatedAway = false;
+
             if (!isSliding) _ = SlidePanelIn();
         }
 
         private async void LoginForm_VisibleChanged(object sender, EventArgs e)
         {
-            if (this.Visible && !isSliding) await SlidePanelIn();
+            if (this.Visible && !isSliding)
+            {
+                ClearFields(); // Clear fields when form becomes visible
+                await SlidePanelIn();
+            }
         }
 
         private async Task SlidePanelIn()
@@ -248,18 +254,16 @@ namespace CarDealership
                         if (result != null)
                         {
                             string role = result.ToString();
+                            NavigatedAway = true;
+                            this.Hide();
+
                             if (role == "Student")
                             {
-                                NavigatedAway = true;
-                                this.Close();
                                 _appContext?.OpenHomeForm(_connectionString, username);
                             }
                             else if (role == "Admin")
                             {
-                                NavigatedAway = true;
-                                this.Close();
-                                AdminForm adminForm = new AdminForm(_connectionString, username);
-                                adminForm.Show();
+                                _appContext?.OpenAdminForm(_connectionString, username);
                             }
                         }
                         else
@@ -329,6 +333,21 @@ namespace CarDealership
                 path.CloseFigure();
                 ctrl.Region = new Region(path);
             }
+        }
+
+        public void ClearFields()
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke((Action)(() => ClearFields()));
+                return;
+            }
+
+            txtUsername.Clear();
+            txtPassword.Clear();
+            focusedField = "";
+            pnlMain.Invalidate();
+            SetPlaceholders();
         }
     }
 }

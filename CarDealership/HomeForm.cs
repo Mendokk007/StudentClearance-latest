@@ -20,6 +20,8 @@ namespace CarDealership
         private IHubProxy _hubProxy;
         private HubConnection _hubConnection;
         private Timer _refreshTimer;
+        private Timer _notificationTimer;
+        private bool _isCleaningUp = false;
 
         // Theme variables (matching LoginForm exactly)
         private bool isDarkMode = true;
@@ -73,6 +75,14 @@ namespace CarDealership
 
             InitializeComponent();
 
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+            typeof(Panel).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty |
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                null, pnlTopBar, new object[] { true });
+            typeof(Panel).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty |
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                null, pnlClearance, new object[] { true });
+
             AddThemeToggleButton();
             ApplyRoundedCorners(this, 30);
 
@@ -125,6 +135,23 @@ namespace CarDealership
             };
         }
 
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            // Double buffer the form and all controls
+            this.DoubleBuffered = true;
+            foreach (Control control in this.Controls)
+            {
+                typeof(Control).InvokeMember("DoubleBuffered",
+                    System.Reflection.BindingFlags.SetProperty |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic,
+                    null, control, new object[] { true });
+            }
+        }
+
+
+
         private void AddThemeToggleButton()
         {
             btnThemeToggle = new Button();
@@ -167,176 +194,164 @@ namespace CarDealership
 
         private void ApplyTheme()
         {
-            // Load background images - Dark mode: home_bg2.jpg, Light mode: home_bg.jpg
+            // Suspend layout to prevent flickering
+            this.SuspendLayout();
+            pnlTopBar.SuspendLayout();
+            pnlClearance.SuspendLayout();
+
             try
             {
-                string bgPath;
-                if (isDarkMode)
-                    bgPath = Path.Combine(Application.StartupPath, "home_bg2.jpg");
-                else
-                    bgPath = Path.Combine(Application.StartupPath, "home_bg.jpg");
-
-                if (File.Exists(bgPath))
-                    this.BackgroundImage = Image.FromFile(bgPath);
-                else
-                    this.BackgroundImage = CreateSolidBackground(isDarkMode ? lunaDarkest : Color.FromArgb(240, 248, 255));
-
-                this.BackgroundImageLayout = ImageLayout.Stretch;
-            }
-            catch
-            {
-                this.BackgroundImage = CreateSolidBackground(isDarkMode ? lunaDarkest : Color.FromArgb(240, 248, 255));
-                this.BackgroundImageLayout = ImageLayout.Stretch;
-            }
-
-            // Reload logo based on theme
-            LoadLogo();
-
-            // Top bar with gradient effect (semi-transparent)
-            pnlTopBar.BackColor = isDarkMode ? Color.FromArgb(200, 1, 28, 64) : Color.FromArgb(200, 255, 255, 255);
-
-            // Clearance panel transparent to show background
-            pnlClearance.BackColor = Color.Transparent;
-
-            // Department panels - DARKER opacity for better readability
-            // Dark mode: much darker semi-transparent background
-            // Light mode: solid white with slight transparency
-            Color panelBackColor = isDarkMode ? Color.FromArgb(220, 1, 28, 64) : Color.FromArgb(245, 255, 255, 255);
-            Color textColor = isDarkMode ? Color.White : lunaDarkest;
-            // Pending font color - NOT BOLD, just regular
-            Color pendingColor = lunaCyan;
-            Color approvedColor = Color.FromArgb(40, 167, 69);
-            Color rejectedColor = Color.FromArgb(240, 71, 71);
-
-            foreach (Control ctrl in pnlClearance.Controls)
-            {
-                if (ctrl is Panel pnl && (pnl.Name.StartsWith("pnl") && pnl.Name != "pnlClearance" && pnl.Name != "pnlTopBar"))
+                // Load background images
+                try
                 {
-                    pnl.BackColor = panelBackColor;
-                    pnl.BorderStyle = BorderStyle.None;
-                    ApplyRoundedCorners(pnl, 15);
+                    string bgPath;
+                    if (isDarkMode)
+                        bgPath = Path.Combine(Application.StartupPath, "home_bg2.jpg");
+                    else
+                        bgPath = Path.Combine(Application.StartupPath, "home_bg.jpg");
 
-                    foreach (Control inner in pnl.Controls)
+                    if (File.Exists(bgPath))
+                        this.BackgroundImage = Image.FromFile(bgPath);
+                    else
+                        this.BackgroundImage = CreateSolidBackground(isDarkMode ? lunaDarkest : Color.FromArgb(240, 248, 255));
+
+                    this.BackgroundImageLayout = ImageLayout.Stretch;
+                }
+                catch
+                {
+                    this.BackgroundImage = CreateSolidBackground(isDarkMode ? lunaDarkest : Color.FromArgb(240, 248, 255));
+                    this.BackgroundImageLayout = ImageLayout.Stretch;
+                }
+
+                LoadLogo();
+                pnlTopBar.BackColor = isDarkMode ? Color.FromArgb(200, 1, 28, 64) : Color.FromArgb(200, 255, 255, 255);
+                pnlClearance.BackColor = Color.Transparent;
+
+                Color panelBackColor = isDarkMode ? Color.FromArgb(220, 1, 28, 64) : Color.FromArgb(245, 255, 255, 255);
+                Color textColor = isDarkMode ? Color.White : lunaDarkest;
+                Color pendingColor = lunaCyan;
+                Color approvedColor = lunaTeal;
+                Color rejectedColor = lunaDarkest; 
+
+                foreach (Control ctrl in pnlClearance.Controls)
+                {
+                    if (ctrl is Panel pnl && (pnl.Name.StartsWith("pnl") && pnl.Name != "pnlClearance" && pnl.Name != "pnlTopBar"))
                     {
-                        if (inner is Label lbl)
+                        pnl.BackColor = panelBackColor;
+                        pnl.BorderStyle = BorderStyle.None;
+                        ApplyRoundedCorners(pnl, 15);
+
+                        foreach (Control inner in pnl.Controls)
                         {
-                            if (lbl.Name.Contains("Status"))
+                            if (inner is Label lbl)
                             {
-                                if (lbl.Text == "Approved")
-                                    lbl.ForeColor = approvedColor;
-                                else if (lbl.Text == "Rejected" || lbl.Text.Contains("Rejected"))
-                                    lbl.ForeColor = rejectedColor;
-                                else if (lbl.Text == "Pending Review" || lbl.Text == "Pending")
-                                    lbl.ForeColor = pendingColor;
+                                if (lbl.Name.Contains("Status"))
+                                {
+                                    if (lbl.Text == "Approved")
+                                        lbl.ForeColor = approvedColor;
+                                    else if (lbl.Text == "Rejected" || lbl.Text.Contains("Rejected"))
+                                        lbl.ForeColor = rejectedColor;
+                                    else if (lbl.Text == "Pending Review" || lbl.Text == "Pending")
+                                        lbl.ForeColor = pendingColor;
+                                    else
+                                        lbl.ForeColor = lunaCyan;
+
+                                    lbl.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
+                                }
                                 else
-                                    lbl.ForeColor = lunaCyan;
-
-                                // NOT BOLD - regular font weight
-                                lbl.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
+                                    lbl.ForeColor = textColor;
                             }
-                            else
-                                lbl.ForeColor = textColor;
-                        }
-                        else if (inner is Button btn && btn.Name.Contains("Submit"))
-                        {
-                            // Larger buttons for better aesthetics
-                            btn.Size = new Size(110, 40);
-                            btn.Location = new Point(btn.Location.X, 28);
-                            btn.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-                            btn.FlatStyle = FlatStyle.Flat;
-                            btn.FlatAppearance.BorderSize = 0;
-                            btn.Cursor = Cursors.Hand;
-
-                            if (btn.Text == "Approved")
+                            else if (inner is Button btn && btn.Name.Contains("Submit"))
                             {
-                                btn.BackColor = approvedColor;
-                                btn.ForeColor = Color.White;
-                            }
-                            else if (btn.Text == "Submitted!")
-                            {
-                                btn.BackColor = pendingColor;
-                                btn.ForeColor = Color.White;
-                            }
-                            else if (btn.Text == "Rejected")
-                            {
-                                btn.BackColor = rejectedColor;
-                                btn.ForeColor = Color.White;
-                            }
-                            else
-                            {
-                                btn.BackColor = lunaTeal;
-                                btn.ForeColor = Color.White;
-                            }
+                                btn.Size = new Size(110, 40);
+                                btn.Location = new Point(btn.Location.X, 28);
+                                btn.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+                                btn.FlatStyle = FlatStyle.Flat;
+                                btn.FlatAppearance.BorderSize = 0;
+                                btn.Cursor = Cursors.Hand;
 
-                            ApplyRoundedCornersToButton(btn, 20);
-
-                            // Hover effects
-                            btn.MouseEnter += (s, ev) => {
-                                if (btn.Enabled && btn.Text != "Approved" && btn.Text != "Submitted!")
-                                    btn.BackColor = lunaCyan;
-                            };
-                            btn.MouseLeave += (s, ev) => {
-                                if (btn.Enabled && btn.Text != "Approved" && btn.Text != "Submitted!")
+                                if (btn.Text == "Approved")
+                                {
+                                    btn.BackColor = approvedColor;
+                                    btn.ForeColor = Color.White;
+                                }
+                                else if (btn.Text == "Submitted!")
+                                {
+                                    btn.BackColor = pendingColor;
+                                    btn.ForeColor = Color.White;
+                                }
+                                else if (btn.Text == "Rejected")
+                                {
+                                    btn.BackColor = rejectedColor;
+                                    btn.ForeColor = Color.White;
+                                }
+                                else
+                                {
                                     btn.BackColor = lunaTeal;
-                            };
+                                    btn.ForeColor = Color.White;
+                                }
+
+                                ApplyRoundedCornersToButton(btn, 20);
+                            }
                         }
                     }
                 }
+
+                ApplyLargerButtons();
+
+                lblClearanceTitle.ForeColor = textColor;
+                lblClearanceTitle.Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold);
+                lblOverallStatus.ForeColor = pendingColor;
+                lblOverallStatus.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
+
+                progressOverall.BackColor = isDarkMode ? Color.FromArgb(30, 35, 45) : Color.FromArgb(220, 230, 240);
+                progressOverall.ForeColor = lunaTeal; // Keeps lunaTeal - this is good
+                progressOverall.Height = 25;
+
+                // Optional: For a gradient effect, you can also set the style
+                progressOverall.Style = ProgressBarStyle.Continuous;
+
+                if (btnThemeToggle != null)
+                {
+                    btnThemeToggle.ForeColor = textColor;
+                    ApplyRoundedCornersToButton(btnThemeToggle, 15);
+                }
+
+                btnLogout.Size = new Size(100, 35);
+                btnLogout.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+                btnLogout.BackColor = lunaTeal;
+                btnLogout.ForeColor = Color.White;
+                btnLogout.FlatStyle = FlatStyle.Flat;
+                btnLogout.FlatAppearance.BorderSize = 0;
+                ApplyRoundedCornersToButton(btnLogout, 15);
+
+                if (btnViewNotifications != null)
+                    btnViewNotifications.ForeColor = textColor;
+
+                if (lblUserGreetingText != null)
+                    lblUserGreetingText.ForeColor = textColor;
+
+                if (lnkEditProfile != null)
+                {
+                    lnkEditProfile.LinkColor = lunaCyan;
+                    lnkEditProfile.ForeColor = lunaCyan;
+                }
+
+                // Update notification badge colors when theme changes
+                UpdateNotificationBadgeTheme();
             }
-
-            // Apply larger size to all submit buttons
-            ApplyLargerButtons();
-
-            // Title and status labels
-            lblClearanceTitle.ForeColor = textColor;
-            lblClearanceTitle.Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold);
-            lblOverallStatus.ForeColor = pendingColor;
-            lblOverallStatus.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
-
-            // Progress bar theme
-            progressOverall.BackColor = isDarkMode ? Color.FromArgb(30, 35, 45) : Color.FromArgb(220, 230, 240);
-            progressOverall.ForeColor = lunaTeal;
-            progressOverall.Height = 25;
-
-            // Theme toggle button
-            if (btnThemeToggle != null)
+            finally
             {
-                btnThemeToggle.ForeColor = textColor;
-                ApplyRoundedCornersToButton(btnThemeToggle, 15);
+                // Resume layout
+                pnlClearance.ResumeLayout(false);
+                pnlTopBar.ResumeLayout(false);
+                this.ResumeLayout(false);
+                pnlClearance.Invalidate();
             }
-
-            // Logout button - larger and rounded
-            btnLogout.Size = new Size(100, 35);
-            btnLogout.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            btnLogout.BackColor = lunaTeal;
-            btnLogout.ForeColor = Color.White;
-            btnLogout.FlatStyle = FlatStyle.Flat;
-            btnLogout.FlatAppearance.BorderSize = 0;
-            ApplyRoundedCornersToButton(btnLogout, 15);
-
-            btnLogout.MouseEnter += (s, e) => { btnLogout.BackColor = lunaCyan; };
-            btnLogout.MouseLeave += (s, e) => { btnLogout.BackColor = lunaTeal; };
-
-            // Notification button theme
-            if (btnViewNotifications != null)
-                btnViewNotifications.ForeColor = textColor;
-
-            // Profile section colors - ensure visibility in light mode
-            if (lblUserGreetingText != null)
-                lblUserGreetingText.ForeColor = textColor;
-
-            if (lnkEditProfile != null)
-            {
-                lnkEditProfile.LinkColor = lunaCyan;
-                lnkEditProfile.ForeColor = lunaCyan;
-            }
-
-            pnlClearance.Invalidate();
         }
 
         private void ApplyLargerButtons()
         {
-            // Make all submit buttons larger
             btnLibrarySubmit.Size = new Size(110, 40);
             btnLibrarySubmit.Location = new Point(btnLibrarySubmit.Location.X, 28);
             btnLibrarySubmit.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
@@ -400,19 +415,30 @@ namespace CarDealership
 
         private void SetupNotificationPolling()
         {
-            var notificationTimer = new Timer();
-            notificationTimer.Interval = 10000;
-            notificationTimer.Tick += (s, e) => {
-                if (this.Visible && !this.IsDisposed)
+            _notificationTimer = new Timer();
+            _notificationTimer.Interval = 10000;
+            _notificationTimer.Tick += (s, e) =>
+            {
+                if (!this.IsDisposed && this.Visible)
                 {
                     UpdateNotificationBadge();
                 }
+                else if (this.IsDisposed)
+                {
+                    // Stop the timer if form is disposed
+                    _notificationTimer.Stop();
+                    _notificationTimer.Dispose();
+                    _notificationTimer = null;
+                }
             };
-            notificationTimer.Start();
+            _notificationTimer.Start();
         }
 
         private void UpdateNotificationBadge()
         {
+            // Check if form is disposed or cleaning up
+            if (this.IsDisposed || _isCleaningUp) return;
+
             try
             {
                 using (var conn = new SqlConnection(_connectionString))
@@ -424,12 +450,18 @@ namespace CarDealership
                         cmd.Parameters.AddWithValue("@Username", _username);
                         _unreadNotificationCount = (int)cmd.ExecuteScalar();
 
+                        if (this.IsDisposed || _isCleaningUp) return;
+
                         if (this.InvokeRequired)
                             this.Invoke((Action)(() => ApplyNotificationBadgeState()));
                         else
                             ApplyNotificationBadgeState();
                     }
                 }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Ignore - form is disposed
             }
             catch (Exception ex)
             {
@@ -439,25 +471,43 @@ namespace CarDealership
 
         private void ApplyNotificationBadgeState()
         {
-            if (lblNotificationBadge == null || btnViewNotifications == null) return;
+            // Check if form is disposed
+            if (this.IsDisposed || lblNotificationBadge == null || btnViewNotifications == null) return;
 
-            if (_unreadNotificationCount > 0)
+            if (this.InvokeRequired)
             {
-                lblNotificationBadge.Text = _unreadNotificationCount > 99 ? "99+" : _unreadNotificationCount.ToString();
-                lblNotificationBadge.Visible = true;
-                btnViewNotifications.ForeColor = Color.FromArgb(240, 71, 71);
+                this.Invoke((Action)(() => ApplyNotificationBadgeState()));
+                return;
             }
-            else
+
+            try
             {
-                lblNotificationBadge.Visible = false;
-                btnViewNotifications.ForeColor = isDarkMode ? Color.White : lunaDarkest;
+                if (lblNotificationBadge.IsDisposed || btnViewNotifications.IsDisposed) return;
+
+                if (_unreadNotificationCount > 0)
+                {
+                    lblNotificationBadge.Text = _unreadNotificationCount > 99 ? "99+" : _unreadNotificationCount.ToString();
+                    lblNotificationBadge.Visible = true;
+                    btnViewNotifications.ForeColor = lunaTeal;
+                    lblNotificationBadge.BackColor = lunaCyan;
+                    lblNotificationBadge.ForeColor = isDarkMode ? lunaDarkest : Color.White;
+                }
+                else
+                {
+                    lblNotificationBadge.Visible = false;
+                    btnViewNotifications.ForeColor = isDarkMode ? Color.White : lunaDarkest;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Form is disposed, ignore
             }
         }
 
         private void SetupNotificationsPanel()
         {
             pnlNotifications = new Panel();
-            pnlNotifications.BackColor = isDarkMode ? Color.FromArgb(35, 40, 48) : Color.FromArgb(255, 255, 255);
+            pnlNotifications.BackColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.FromArgb(240, 248, 255);
             pnlNotifications.Size = new Size(320, 420);
             pnlNotifications.Location = new Point(this.Width - 340, 80);
             pnlNotifications.Visible = false;
@@ -467,7 +517,7 @@ namespace CarDealership
             lblNotificationTitle = new Label();
             lblNotificationTitle.Text = "Notifications";
             lblNotificationTitle.Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold);
-            lblNotificationTitle.ForeColor = isDarkMode ? Color.White : lunaDarkest;
+            lblNotificationTitle.ForeColor = isDarkMode ? lunaLight : lunaTeal;
             lblNotificationTitle.Location = new Point(15, 15);
             lblNotificationTitle.Size = new Size(200, 30);
             pnlNotifications.Controls.Add(lblNotificationTitle);
@@ -475,7 +525,7 @@ namespace CarDealership
             btnCloseNotifications = new Button();
             btnCloseNotifications.Text = "✕";
             btnCloseNotifications.BackColor = Color.Transparent;
-            btnCloseNotifications.ForeColor = isDarkMode ? Color.White : lunaDarkest;
+            btnCloseNotifications.ForeColor = isDarkMode ? lunaLight : lunaTeal;
             btnCloseNotifications.FlatStyle = FlatStyle.Flat;
             btnCloseNotifications.FlatAppearance.BorderSize = 0;
             btnCloseNotifications.Size = new Size(35, 30);
@@ -486,8 +536,8 @@ namespace CarDealership
             pnlNotifications.Controls.Add(btnCloseNotifications);
 
             lstNotifications = new ListBox();
-            lstNotifications.BackColor = isDarkMode ? Color.FromArgb(45, 50, 58) : Color.FromArgb(248, 250, 252);
-            lstNotifications.ForeColor = isDarkMode ? Color.White : lunaDarkest;
+            lstNotifications.BackColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.FromArgb(255, 255, 255);
+            lstNotifications.ForeColor = isDarkMode ? lunaLight : lunaDarkest;
             lstNotifications.BorderStyle = BorderStyle.None;
             lstNotifications.Location = new Point(15, 55);
             lstNotifications.Size = new Size(290, 310);
@@ -530,8 +580,8 @@ namespace CarDealership
             lblNotificationBadge = new Label();
             lblNotificationBadge.Text = "";
             lblNotificationBadge.Font = new Font("Segoe UI", 8, FontStyle.Bold);
-            lblNotificationBadge.ForeColor = Color.White;
-            lblNotificationBadge.BackColor = Color.FromArgb(240, 71, 71);
+            lblNotificationBadge.ForeColor = isDarkMode ? lunaDarkest : Color.White;
+            lblNotificationBadge.BackColor = lunaCyan;
             lblNotificationBadge.AutoSize = false;
             lblNotificationBadge.Size = new Size(18, 18);
             lblNotificationBadge.Location = new Point(762, 12);
@@ -658,13 +708,11 @@ namespace CarDealership
         {
             string logoPath;
 
-            // Choose logo based on theme: logo.png for light mode, logo2.png for dark mode
             if (isDarkMode)
                 logoPath = Path.Combine(Application.StartupPath, "logo2.png");
             else
                 logoPath = Path.Combine(Application.StartupPath, "logo.png");
 
-            // Check in Logos folder if not found in root
             if (!File.Exists(logoPath))
             {
                 string logosFolder = Path.Combine(Application.StartupPath, "Logos");
@@ -820,16 +868,39 @@ namespace CarDealership
             {
                 _hubConnection = new HubConnection("http://localhost:8080/");
                 _hubProxy = _hubConnection.CreateHubProxy("clearanceHub");
+
                 _hubProxy.On<string, string>("statusUpdated", (department, status) =>
                 {
-                    this.Invoke((Action)(() =>
+                    // Check if form is disposed or cleaning up
+                    if (!this.IsDisposed && !_isCleaningUp && this.Visible)
                     {
-                        UpdateDepartmentStatus(department, status);
-                        notifyIcon1.ShowBalloonTip(3000, "Clearance Update", $"{department} clearance has been {status}!", ToolTipIcon.Info);
-                        UpdateOverallProgress();
-                        UpdateNotificationBadge();
-                    }));
+                        if (this.InvokeRequired)
+                        {
+                            this.Invoke((Action)(() =>
+                            {
+                                if (!this.IsDisposed && !_isCleaningUp)
+                                {
+                                    UpdateDepartmentStatus(department, status);
+                                    UpdateOverallProgress();
+                                    UpdateNotificationBadge();
+                                }
+                            }));
+                        }
+                        else
+                        {
+                            if (!this.IsDisposed && !_isCleaningUp)
+                            {
+                                UpdateDepartmentStatus(department, status);
+                                UpdateOverallProgress();
+                                UpdateNotificationBadge();
+                            }
+                        }
+                    }
                 });
+
+                // Store event handler reference so we can unsubscribe
+                _hubConnection.Closed += OnConnectionClosed;
+
                 await _hubConnection.Start();
                 await _hubProxy.Invoke("JoinStudentGroup", _username);
             }
@@ -840,15 +911,66 @@ namespace CarDealership
             }
         }
 
+        private void OnConnectionClosed()
+        {
+            // Check if we're already cleaning up or form is disposed
+            if (_isCleaningUp || this.IsDisposed) return;
+
+            try
+            {
+                if (!this.IsDisposed && this.Visible)
+                {
+                    if (this.InvokeRequired)
+                    {
+                        this.Invoke((Action)(() =>
+                        {
+                            if (!this.IsDisposed && !_isCleaningUp)
+                            {
+                                Console.WriteLine("SignalR connection closed. Using polling fallback...");
+                                SetupPollingTimer();
+                            }
+                        }));
+                    }
+                    else
+                    {
+                        if (!this.IsDisposed && !_isCleaningUp)
+                        {
+                            Console.WriteLine("SignalR connection closed. Using polling fallback...");
+                            SetupPollingTimer();
+                        }
+                    }
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Ignore - form is disposed
+            }
+        }
+
         private void SetupPollingTimer()
         {
-            _refreshTimer = new Timer { Interval = 5000 };
-            _refreshTimer.Tick += (s, e) => LoadClearanceStatusFromDB();
-            _refreshTimer.Start();
+            // Don't set up polling if we're cleaning up or form is disposed
+            if (_isCleaningUp || this.IsDisposed) return;
+
+            if (_refreshTimer == null)
+            {
+                _refreshTimer = new Timer { Interval = 5000 };
+                _refreshTimer.Tick += (s, e) =>
+                {
+                    if (!this.IsDisposed && !_isCleaningUp && this.Visible)
+                    {
+                        LoadClearanceStatusFromDB();
+                    }
+                };
+                _refreshTimer.Start();
+            }
         }
 
         private void LoadClearanceStatusFromDB()
         {
+            // Check if form is disposed
+            if (this.IsDisposed) return;
+
             try
             {
                 using (var conn = new SqlConnection(_connectionString))
@@ -862,6 +984,9 @@ namespace CarDealership
                         {
                             while (reader.Read())
                             {
+                                // Check if disposed during iteration
+                                if (this.IsDisposed) return;
+
                                 string dept = reader["DepartmentName"].ToString();
                                 string status = reader["Status"].ToString();
                                 if (status != "Pending")
@@ -869,50 +994,115 @@ namespace CarDealership
                                 else
                                 {
                                     var controls = GetDepartmentControls(dept);
-                                    if (controls.submitButton != null && reader["SubmittedAt"] != DBNull.Value)
+                                    if (controls.submitButton != null && !controls.submitButton.IsDisposed &&
+                                        reader["SubmittedAt"] != DBNull.Value)
                                     {
-                                        controls.submitButton.Text = "Submitted!";
-                                        controls.submitButton.BackColor = lunaCyan;
-                                        controls.submitButton.Enabled = false;
-                                        controls.statusLabel.Text = "Pending Review";
-                                        controls.statusLabel.ForeColor = lunaCyan;
-                                        ApplyRoundedCornersToButton(controls.submitButton, 20);
+                                        if (controls.submitButton.InvokeRequired)
+                                        {
+                                            controls.submitButton.Invoke((Action)(() =>
+                                            {
+                                                if (!this.IsDisposed && !controls.submitButton.IsDisposed)
+                                                {
+                                                    controls.submitButton.Text = "Submitted!";
+                                                    controls.submitButton.BackColor = lunaCyan;
+                                                    controls.submitButton.Enabled = false;
+                                                    if (controls.statusLabel != null && !controls.statusLabel.IsDisposed)
+                                                    {
+                                                        controls.statusLabel.Text = "Pending Review";
+                                                        controls.statusLabel.ForeColor = lunaCyan;
+                                                    }
+                                                    ApplyRoundedCornersToButton(controls.submitButton, 20);
+                                                }
+                                            }));
+                                        }
+                                        else
+                                        {
+                                            if (!controls.submitButton.IsDisposed)
+                                            {
+                                                controls.submitButton.Text = "Submitted!";
+                                                controls.submitButton.BackColor = lunaCyan;
+                                                controls.submitButton.Enabled = false;
+                                                if (controls.statusLabel != null && !controls.statusLabel.IsDisposed)
+                                                {
+                                                    controls.statusLabel.Text = "Pending Review";
+                                                    controls.statusLabel.ForeColor = lunaCyan;
+                                                }
+                                                ApplyRoundedCornersToButton(controls.submitButton, 20);
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-                UpdateOverallProgress();
+
+                if (!this.IsDisposed)
+                {
+                    UpdateOverallProgress();
+                }
             }
-            catch (Exception ex) { Console.WriteLine("Error loading status: " + ex.Message); }
+            catch (ObjectDisposedException)
+            {
+                // Form is disposed, ignore
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error loading status: " + ex.Message);
+            }
         }
 
         private void UpdateDepartmentStatus(string department, string status)
         {
             var controls = GetDepartmentControls(department);
-            if (controls.submitButton != null)
+            if (controls.submitButton != null && !controls.submitButton.IsDisposed)
             {
                 _clearanceStatus[department] = (status == "Approved");
-                if (status == "Approved")
+
+                // Check if parent exists before suspending layout
+                if (controls.submitButton.Parent != null && !controls.submitButton.Parent.IsDisposed)
                 {
-                    controls.submitButton.Text = "Approved";
-                    controls.submitButton.BackColor = Color.FromArgb(40, 167, 69);
-                    controls.submitButton.Enabled = false;
-                    controls.statusLabel.Text = "Approved";
-                    controls.statusLabel.ForeColor = Color.FromArgb(40, 167, 69);
+                    controls.submitButton.Parent.SuspendLayout();
                 }
-                else if (status == "Rejected")
+
+                try
                 {
-                    controls.submitButton.Text = "Rejected";
-                    controls.submitButton.BackColor = Color.FromArgb(240, 71, 71);
-                    controls.submitButton.Enabled = true;
-                    controls.statusLabel.Text = "Rejected";
-                    controls.statusLabel.ForeColor = Color.FromArgb(240, 71, 71);
-                    _clearanceStatus[department] = false;
+                    if (status == "Approved")
+                    {
+                        controls.submitButton.Text = "Approved";
+                        controls.submitButton.BackColor = lunaTeal; 
+                        controls.submitButton.Enabled = false;
+                        controls.statusLabel.Text = "Approved";
+                        controls.statusLabel.ForeColor = lunaTeal; 
+                    }
+                    else if (status == "Rejected")
+                    {
+                        controls.submitButton.Text = "Rejected";
+                        controls.submitButton.BackColor = Color.FromArgb(180, 60, 80); // Changed from red to deep burgundy
+                        controls.submitButton.Enabled = true;
+                        if (controls.statusLabel != null && !controls.statusLabel.IsDisposed)
+                        {
+                            controls.statusLabel.Text = "Rejected";
+                            controls.statusLabel.ForeColor = Color.FromArgb(180, 60, 80); // Changed from red to deep burgundy
+                        }
+                        _clearanceStatus[department] = false;
+                    }
+
+                    if (controls.statusLabel != null && !controls.statusLabel.IsDisposed)
+                    {
+                        controls.statusLabel.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
+                    }
+
+                    ApplyRoundedCornersToButton(controls.submitButton, 20);
                 }
-                controls.statusLabel.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
-                ApplyRoundedCornersToButton(controls.submitButton, 20);
+                finally
+                {
+                    // Resume layout if parent exists
+                    if (controls.submitButton.Parent != null && !controls.submitButton.Parent.IsDisposed)
+                    {
+                        controls.submitButton.Parent.ResumeLayout(false);
+                    }
+                }
             }
         }
 
@@ -932,17 +1122,31 @@ namespace CarDealership
 
         private void UpdateOverallProgress()
         {
+            if (this.IsDisposed) return;
+
+            if (this.InvokeRequired)
+            {
+                this.Invoke((Action)(() => UpdateOverallProgress()));
+                return;
+            }
+
             int submittedCount = 0;
             foreach (var dept in _clearanceStatus.Keys)
             {
                 var controls = GetDepartmentControls(dept);
-                if (controls.statusLabel != null)
+                if (controls.statusLabel != null && !controls.statusLabel.IsDisposed)
+                {
                     if (controls.statusLabel.Text == "Approved" || controls.statusLabel.Text == "Pending Review")
                         submittedCount++;
+                }
             }
-            progressOverall.Maximum = 6;
-            progressOverall.Value = submittedCount;
-            lblOverallStatus.Text = $"Overall Progress: {submittedCount}/6";
+
+            if (progressOverall != null && !progressOverall.IsDisposed)
+            {
+                progressOverall.Maximum = 6;
+                progressOverall.Value = submittedCount;
+                lblOverallStatus.Text = $"Overall Progress: {submittedCount}/6";
+            }
         }
 
         private void HandleSubmission(string department, Button submitButton, Label statusLabel)
@@ -1010,17 +1214,77 @@ namespace CarDealership
             if (result == DialogResult.Yes)
             {
                 _loggedOut = true;
-                _hubConnection?.Stop();
-                _refreshTimer?.Stop();
-                _appContext?.OpenLoginForm();
+                _isCleaningUp = true;  // Set flag to prevent any further callbacks
+
+                // Stop all timers first
+                if (_refreshTimer != null)
+                {
+                    _refreshTimer.Stop();
+                    _refreshTimer.Dispose();
+                    _refreshTimer = null;
+                }
+
+                if (_notificationTimer != null)
+                {
+                    _notificationTimer.Stop();
+                    _notificationTimer.Dispose();
+                    _notificationTimer = null;
+                }
+
+                // Clean up SignalR - unsubscribe from events first
+                try
+                {
+                    if (_hubConnection != null)
+                    {
+                        // Unsubscribe from event
+                        _hubConnection.Closed -= OnConnectionClosed;
+
+                        if (_hubConnection.State == Microsoft.AspNet.SignalR.Client.ConnectionState.Connected)
+                        {
+                            _hubProxy?.Invoke("LeaveStudentGroup", _username);
+                        }
+                        _hubConnection.Stop();
+                        _hubConnection.Dispose();
+                        _hubConnection = null;
+                    }
+                }
+                catch { }
+
                 this.Close();
             }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            _hubConnection?.Stop();
-            _refreshTimer?.Stop();
+            _isCleaningUp = true;  // Set flag before cleanup
+
+            try
+            {
+                // Unsubscribe from SignalR events
+                if (_hubConnection != null)
+                {
+                    _hubConnection.Closed -= OnConnectionClosed;
+                    _hubConnection.Stop();
+                    _hubConnection = null;
+                }
+
+                // Stop all timers
+                if (_refreshTimer != null)
+                {
+                    _refreshTimer.Stop();
+                    _refreshTimer.Dispose();
+                    _refreshTimer = null;
+                }
+
+                if (_notificationTimer != null)
+                {
+                    _notificationTimer.Stop();
+                    _notificationTimer.Dispose();
+                    _notificationTimer = null;
+                }
+            }
+            catch { }
+
             base.OnFormClosing(e);
         }
 
@@ -1034,6 +1298,91 @@ namespace CarDealership
         private void pnlClearance_Paint(object sender, PaintEventArgs e)
         {
 
+        }
+
+        private void UpdateNotificationBadgeTheme()
+        {
+            // Check if form is disposed
+            if (this.IsDisposed || lblNotificationBadge == null || btnViewNotifications == null) return;
+
+            if (this.InvokeRequired)
+            {
+                this.Invoke((Action)(() => UpdateNotificationBadgeTheme()));
+                return;
+            }
+
+            try
+            {
+                if (_unreadNotificationCount > 0)
+                {
+                    if (!lblNotificationBadge.IsDisposed && !btnViewNotifications.IsDisposed)
+                    {
+                        btnViewNotifications.ForeColor = lunaTeal;
+                        lblNotificationBadge.BackColor = lunaCyan;
+                        lblNotificationBadge.ForeColor = isDarkMode ? lunaDarkest : Color.White;
+                    }
+                }
+                else
+                {
+                    if (btnViewNotifications != null && !btnViewNotifications.IsDisposed)
+                    {
+                        btnViewNotifications.ForeColor = isDarkMode ? Color.White : lunaDarkest;
+                    }
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Form is disposed, ignore
+            }
+        }
+    }
+
+    public class LunaProgressBar : ProgressBar
+    {
+        // Define Luna colors inside the custom class
+        private Color lunaTeal = Color.FromArgb(38, 101, 140);
+        private Color lunaCyan = Color.FromArgb(84, 172, 191);
+
+        public LunaProgressBar()
+        {
+            this.SetStyle(ControlStyles.UserPaint, true);
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Rectangle rect = this.ClientRectangle;
+            Graphics g = e.Graphics;
+
+            // Draw background
+            using (SolidBrush brush = new SolidBrush(this.BackColor))
+            {
+                g.FillRectangle(brush, rect);
+            }
+
+            // Calculate progress width
+            int progressWidth = (int)(rect.Width * ((double)this.Value / this.Maximum));
+
+            if (progressWidth > 0)
+            {
+                Rectangle progressRect = new Rectangle(rect.X, rect.Y, progressWidth, rect.Height);
+
+                // Use Luna gradient
+                using (LinearGradientBrush gradient = new LinearGradientBrush(
+                    progressRect,
+                    lunaCyan,
+                    lunaTeal,
+                    LinearGradientMode.Horizontal))
+                {
+                    g.FillRectangle(gradient, progressRect);
+                }
+            }
+
+            // Draw border
+            using (Pen pen = new Pen(lunaTeal, 1))
+            {
+                g.DrawRectangle(pen, rect.X, rect.Y, rect.Width - 1, rect.Height - 1);
+            }
         }
     }
 }

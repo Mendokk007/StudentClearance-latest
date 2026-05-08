@@ -110,31 +110,52 @@ namespace CarDealership
                 _hubConnection = new HubConnection("http://localhost:8080/");
                 _hubProxy = _hubConnection.CreateHubProxy("clearanceHub");
 
-                _hubProxy.On<string>("newSubmission", message =>
+                _hubProxy.On<string, string>("newSubmission", (message, studentUsername) =>
                 {
-                    this.Invoke((Action)(() =>
+                    if (!this.IsDisposed)
                     {
-                        LoadPendingSubmissions();
-                        notifyIcon1.ShowBalloonTip(3000, "Clearance System", message, ToolTipIcon.Info);
-                    }));
+                        this.Invoke((Action)(() =>
+                        {
+                            LoadPendingSubmissions();
+                            notifyIcon1.ShowBalloonTip(3000, "Clearance System", message, ToolTipIcon.Info);
+                        }));
+                    }
                 });
+
+                _hubConnection.Closed += () =>
+                {
+                    if (!this.IsDisposed)
+                    {
+                        this.Invoke((Action)(() =>
+                        {
+                            Console.WriteLine("SignalR connection closed for admin");
+                            _signalRConnected = false;
+                            SetupNotificationTimer(); // Fallback to polling
+                        }));
+                    }
+                };
 
                 await _hubConnection.Start();
                 _signalRConnected = true;
                 await _hubProxy.Invoke("JoinAdminGroup", _department);
+                Console.WriteLine($"Admin {_username} connected to SignalR for department {_department}");
             }
             catch (Exception ex)
             {
                 Console.WriteLine("SignalR Error: " + ex.Message);
                 _signalRConnected = false;
+                SetupNotificationTimer();
             }
         }
 
         private void SetupNotificationTimer()
         {
-            _notificationTimer = new Timer();
-            _notificationTimer.Interval = 10000;
-            _notificationTimer.Tick += (s, e) => LoadPendingSubmissions();
+            if (_notificationTimer == null)
+            {
+                _notificationTimer = new Timer();
+                _notificationTimer.Interval = 10000;
+                _notificationTimer.Tick += (s, e) => LoadPendingSubmissions();
+            }
             _notificationTimer.Start();
         }
 
@@ -156,36 +177,45 @@ namespace CarDealership
                             adapter.Fill(dt);
                         }
 
-                        dgvSubmissions.Invoke((Action)(() =>
+                        if (dgvSubmissions.InvokeRequired)
                         {
-                            dgvSubmissions.Columns.Clear();
-                            dgvSubmissions.DataSource = dt;
-
-                            if (dgvSubmissions.Columns.Contains("ImageData"))
-                                dgvSubmissions.Columns["ImageData"].Visible = false;
-                            if (dgvSubmissions.Columns.Contains("SubmissionID"))
-                                dgvSubmissions.Columns["SubmissionID"].Visible = false;
-
-                            if (dgvSubmissions.Columns.Contains("StudentUsername"))
-                                dgvSubmissions.Columns["StudentUsername"].HeaderText = "Username";
-                            if (dgvSubmissions.Columns.Contains("StudentName"))
-                                dgvSubmissions.Columns["StudentName"].HeaderText = "Full Name";
-                            if (dgvSubmissions.Columns.Contains("ImageFileName"))
-                                dgvSubmissions.Columns["ImageFileName"].HeaderText = "File";
-                            if (dgvSubmissions.Columns.Contains("SubmittedAt"))
-                                dgvSubmissions.Columns["SubmittedAt"].HeaderText = "Submitted";
-                            if (dgvSubmissions.Columns.Contains("Status"))
-                                dgvSubmissions.Columns["Status"].HeaderText = "Status";
-
-                            lblPendingCount.Text = $"({dt.Rows.Count})";
-                        }));
+                            dgvSubmissions.Invoke((Action)(() => UpdateDataGridView(dt)));
+                        }
+                        else
+                        {
+                            UpdateDataGridView(dt);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error loading submissions: " + ex.Message);
+                Console.WriteLine("Error loading submissions: " + ex.Message);
             }
+        }
+
+        private void UpdateDataGridView(DataTable dt)
+        {
+            dgvSubmissions.Columns.Clear();
+            dgvSubmissions.DataSource = dt;
+
+            if (dgvSubmissions.Columns.Contains("ImageData"))
+                dgvSubmissions.Columns["ImageData"].Visible = false;
+            if (dgvSubmissions.Columns.Contains("SubmissionID"))
+                dgvSubmissions.Columns["SubmissionID"].Visible = false;
+
+            if (dgvSubmissions.Columns.Contains("StudentUsername"))
+                dgvSubmissions.Columns["StudentUsername"].HeaderText = "Username";
+            if (dgvSubmissions.Columns.Contains("StudentName"))
+                dgvSubmissions.Columns["StudentName"].HeaderText = "Full Name";
+            if (dgvSubmissions.Columns.Contains("ImageFileName"))
+                dgvSubmissions.Columns["ImageFileName"].HeaderText = "File";
+            if (dgvSubmissions.Columns.Contains("SubmittedAt"))
+                dgvSubmissions.Columns["SubmittedAt"].HeaderText = "Submitted";
+            if (dgvSubmissions.Columns.Contains("Status"))
+                dgvSubmissions.Columns["Status"].HeaderText = "Status";
+
+            lblPendingCount.Text = $"({dt.Rows.Count})";
         }
 
         private void dgvSubmissions_CellClick(object sender, DataGridViewCellEventArgs e)
@@ -245,22 +275,55 @@ namespace CarDealership
 
         private void btnLogout_Click(object sender, EventArgs e)
         {
-            _hubConnection?.Stop();
-            _notificationTimer?.Stop();
+            var result = MessageBox.Show("Are you sure you want to logout?", "Confirm Logout",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
-            var login = new LoginForm();
-            if (_appContext != null)
+            if (result == DialogResult.Yes)
             {
-                login.SetAppContext(_appContext);
+                // Clean up SignalR
+                try
+                {
+                    if (_hubConnection != null && _hubConnection.State == Microsoft.AspNet.SignalR.Client.ConnectionState.Connected)
+                    {
+                        _hubProxy?.Invoke("LeaveAdminGroup", _department);
+                        _hubConnection.Stop();
+                        _hubConnection = null;
+                    }
+                }
+                catch { }
+
+                // Stop timer
+                if (_notificationTimer != null)
+                {
+                    _notificationTimer.Stop();
+                    _notificationTimer.Dispose();
+                    _notificationTimer = null;
+                }
+
+                // Close the form
+                this.Close();
             }
-            login.Show();
-            this.Close();
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            _hubConnection?.Stop();
-            _notificationTimer?.Stop();
+            try
+            {
+                if (_hubConnection != null)
+                {
+                    _hubConnection.Stop();
+                    _hubConnection = null;
+                }
+            }
+            catch { }
+
+            if (_notificationTimer != null)
+            {
+                _notificationTimer.Stop();
+                _notificationTimer.Dispose();
+                _notificationTimer = null;
+            }
+
             base.OnFormClosing(e);
         }
     }

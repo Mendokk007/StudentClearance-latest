@@ -11,7 +11,7 @@
         private System.Windows.Forms.Panel pnlClearance;
         private System.Windows.Forms.Label lblClearanceTitle;
         private System.Windows.Forms.Label lblOverallStatus;
-        private System.Windows.Forms.ProgressBar progressOverall;
+        private LunaProgressBar progressOverall;
 
         private System.Windows.Forms.Panel pnlLibrary;
         private System.Windows.Forms.Label lblLibrary;
@@ -47,6 +47,29 @@
         {
             if (disposing && (components != null))
             {
+                _isCleaningUp = true;  // Set flag
+
+                // Unsubscribe from SignalR events
+                if (_hubConnection != null)
+                {
+                    _hubConnection.Closed -= OnConnectionClosed;
+                }
+
+                // Clean up timers
+                if (_refreshTimer != null)
+                {
+                    _refreshTimer.Stop();
+                    _refreshTimer.Dispose();
+                    _refreshTimer = null;
+                }
+
+                if (_notificationTimer != null)
+                {
+                    _notificationTimer.Stop();
+                    _notificationTimer.Dispose();
+                    _notificationTimer = null;
+                }
+
                 components.Dispose();
             }
             base.Dispose(disposing);
@@ -60,7 +83,7 @@
             this.pnlClearance = new System.Windows.Forms.Panel();
             this.lblClearanceTitle = new System.Windows.Forms.Label();
             this.lblOverallStatus = new System.Windows.Forms.Label();
-            this.progressOverall = new System.Windows.Forms.ProgressBar();
+            this.progressOverall = new LunaProgressBar();
             this.pnlLibrary = new System.Windows.Forms.Panel();
             this.lblLibrary = new System.Windows.Forms.Label();
             this.btnLibrarySubmit = new System.Windows.Forms.Button();

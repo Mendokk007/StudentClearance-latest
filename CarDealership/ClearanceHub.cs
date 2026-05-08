@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNet.SignalR;
 using Microsoft.AspNet.SignalR.Hubs;
-using System.Runtime.Remoting.Contexts;
 using System.Threading.Tasks;
 
 namespace CarDealership
@@ -8,30 +7,67 @@ namespace CarDealership
     [HubName("clearanceHub")]
     public class ClearanceHub : Hub
     {
-        public void JoinStudentGroup(string username)
+        public async Task JoinStudentGroup(string username)
         {
-            Groups.Add(Context.ConnectionId, username);
+            // Use unique group names to avoid conflicts
+            string groupName = $"student_{username}";
+            await Groups.Add(Context.ConnectionId, groupName);
+            System.Diagnostics.Debug.WriteLine($"Student {username} joined group {groupName}");
         }
 
-        public void JoinAdminGroup(string department)
+        public async Task JoinAdminGroup(string department)
         {
-            Groups.Add(Context.ConnectionId, $"admin_{department}");
+            string groupName = $"admin_{department}";
+            await Groups.Add(Context.ConnectionId, groupName);
+            System.Diagnostics.Debug.WriteLine($"Admin for {department} joined group {groupName}");
         }
 
-        public void NotifyNewSubmission(string department, string studentName)
+        public async Task LeaveStudentGroup(string username)
         {
-            Clients.Group($"admin_{department}").newSubmission(
-                $"New submission from {studentName} for {department}");
+            string groupName = $"student_{username}";
+            await Groups.Remove(Context.ConnectionId, groupName);
+            System.Diagnostics.Debug.WriteLine($"Student {username} left group {groupName}");
         }
 
-        public void NotifyStatusUpdate(string studentUsername, string department, string status)
+        public async Task LeaveAdminGroup(string department)
         {
-            Clients.Group(studentUsername).statusUpdated(department, status);
+            string groupName = $"admin_{department}";
+            await Groups.Remove(Context.ConnectionId, groupName);
+            System.Diagnostics.Debug.WriteLine($"Admin for {department} left group {groupName}");
         }
 
-        public override Task OnConnected()
+        public async Task NotifyNewSubmission(string department, string studentName, string studentUsername)
         {
-            return base.OnConnected();
+            string groupName = $"admin_{department}";
+            await Clients.Group(groupName).newSubmission(
+                $"New submission from {studentName} for {department}",
+                studentUsername
+            );
+        }
+
+        public async Task NotifyStatusUpdate(string studentUsername, string department, string status)
+        {
+            string groupName = $"student_{studentUsername}";
+            await Clients.Group(groupName).statusUpdated(department, status);
+            System.Diagnostics.Debug.WriteLine($"Notified {studentUsername} that {department} status is {status}");
+        }
+
+        public override async Task OnConnected()
+        {
+            System.Diagnostics.Debug.WriteLine($"Client connected: {Context.ConnectionId}");
+            await base.OnConnected();
+        }
+
+        public override async Task OnDisconnected(bool stopCalled)
+        {
+            System.Diagnostics.Debug.WriteLine($"Client disconnected: {Context.ConnectionId}");
+            await base.OnDisconnected(stopCalled);
+        }
+
+        public override async Task OnReconnected()
+        {
+            System.Diagnostics.Debug.WriteLine($"Client reconnected: {Context.ConnectionId}");
+            await base.OnReconnected();
         }
     }
 }

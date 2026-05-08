@@ -24,11 +24,9 @@ Before running the application, you must set up the SQL database:
 
 > [!IMPORTANT]
 > If Windows shows a "Protected your PC" warning during installation, click **More Info** then **Run Anyway**.
-<br>
-<a href="https://www.virustotal.com/gui/file/acedddd4893913b69de3f89683dd7c728d8eda8d33235de659d98703369bc38c?nocache=1" target="_blank">
+<a href="PASTE_YOUR_VIRUSTOTAL_URL_HERE" target="_blank">
   <img src="https://img.shields.io/badge/VirusTotal-Verified_Clean-0070ad?style=for-the-badge&logo=virustotal&logoColor=white" alt="VirusTotal Scan Result">
 </a>
-<br>
 *Scan performed on the installer package to ensure it is free from malware and safe for use.*
 
 ---

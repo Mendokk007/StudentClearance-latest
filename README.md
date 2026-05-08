@@ -6,7 +6,7 @@
 1. Ensure you have SQL Server Express or LocalDB installed.
 2. Open SQL Server Management Studio (SSMS) and connect to your local server.
 3. Open the `database_setup.sql` file included in this repository.
-4. Press Execute (F5) to create the tables and initial data (including the Car Dealership list).
+4. Press Execute (F5) to create the tables and initial data.
    
 #### Application Installation
 1. Go to the [Releases](https://github.com/Mendokk007/StudentClearance-latest/releases) page.

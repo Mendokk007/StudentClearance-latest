@@ -3,19 +3,16 @@
 ## 🚀 How to Install (for Users)
 
 ### 1. Database Setup (Required First)
-Before running the application, you must set up the SQL database so the app can store student data:
+Before running the application, you must set up the SQL database:
 1.  Ensure you have **SQL Server Express** or **LocalDB** installed.
-2.  **[Click here to download database_setup.sql](https://raw.githubusercontent.com/Mendokk007/StudentClearance-latest/refs/heads/main/database_setup.sql)** (Right-click and "Save link as..." if it opens in a new tab).
+2.  **Download the Setup Script:** 
+    <a href="https://raw.githubusercontent.com/Mendokk007/StudentClearance-latest/refs/heads/main/database_setup.sql" download="database_setup.sql">
+      <img src="https://img.shields.io/badge/Download-SQL_Script-blue?style=for-the-badge&logo=microsoftsqlserver" alt="Download SQL Script">
+    </a>
+    *(If it opens in a new tab, press **Ctrl + S** to save it as a .sql file)*
 3.  Open **SQL Server Management Studio (SSMS)** and connect to your local server.
 4.  Go to **File > Open > File...** and select the downloaded `database_setup.sql`.
 5.  Press **Execute (F5)** to create the tables and initial data.
-
-### 2. Application Installation
-1.  Go to the [Releases](https://github.com/Mendokk007/StudentClearance-latest/releases) page.
-2.  Download `StudentClearance_v1.0_Installer.rar`.
-3.  **Extract** the RAR file to a folder on your computer.
-4.  Run `setup.exe` to install the application.
-5.  Once installed, you can open the app via the **StudentClearance** shortcut on your desktop.
 
 > [!IMPORTANT]
 > If Windows shows a "Protected your PC" warning during installation, click **More Info** then **Run Anyway**.

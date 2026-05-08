@@ -6,7 +6,7 @@
 Before running the application, you must set up the SQL database:
 1.  Ensure you have **SQL Server Express** or **LocalDB** installed.
 2.  **Download the Setup Script:** 
-    <a href="PASTE_THE_COPIED_LINK_HERE" download>
+    <a href="https://github.com/Mendokk007/StudentClearance-latest/releases/download/v1.0/database_setup.sql" download>
       <img src="https://img.shields.io/badge/Download-SQL_Script-blue?style=for-the-badge&logo=microsoftsqlserver" alt="Download SQL Script">
     </a>
 3.  Open **SQL Server Management Studio (SSMS)** and connect to your local server.

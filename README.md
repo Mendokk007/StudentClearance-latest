@@ -2,7 +2,7 @@
 
 ## 🚀 How to Install (for Users)
 
-### 1. Database Setup (Required First)
+### ⚙️ Database Setup (Required First)
 `Before running the application, you must set up the SQL database:`
 1.  Ensure you have **SQL Server Express** or **LocalDB** installed.
 2.  **Download the Setup Script:**
@@ -15,7 +15,7 @@
 5.  Press **Execute (F5)** to create the tables and initial data.
 
 
-### 2. Application Installation
+### 💻 Application Installation
 1.  Go to the [Releases](https://github.com/Mendokk007/StudentClearance-latest/releases) page.
 2.  Download `StudentClearance_v1.0_Installer.rar`.
 3.  **Extract** the RAR file to a folder on your computer.

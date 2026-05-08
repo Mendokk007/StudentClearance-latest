@@ -3,7 +3,7 @@
 ## 🚀 How to Install (for Users)
 
 ### 1. Database Setup (Required First)
-Before running the application, you must set up the SQL database so the app can store student and car data:
+Before running the application, you must set up the SQL database so the app can store student data:
 1.  Ensure you have **SQL Server Express** or **LocalDB** installed.
 2.  **[Click here to download database_setup.sql](https://raw.githubusercontent.com/Mendokk007/StudentClearance-latest/refs/heads/main/database_setup.sql)** (Right-click and "Save link as..." if it opens in a new tab).
 3.  Open **SQL Server Management Studio (SSMS)** and connect to your local server.

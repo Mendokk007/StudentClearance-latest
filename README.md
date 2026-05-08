@@ -27,6 +27,7 @@ Before running the application, you must set up the SQL database:
 <a href="PASTE_YOUR_VIRUSTOTAL_URL_HERE" target="_blank">
   <img src="https://img.shields.io/badge/VirusTotal-Verified_Clean-0070ad?style=for-the-badge&logo=virustotal&logoColor=white" alt="VirusTotal Scan Result">
 </a>
+<br>
 *Scan performed on the installer package to ensure it is free from malware and safe for use.*
 
 ---

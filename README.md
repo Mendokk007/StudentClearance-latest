@@ -1,13 +1,43 @@
 # Student Clearance Database Setup
 
-## 🚀 How to Install (for users)
-1. Go to the [Releases](https://github.com/Mendokk007/StudentClearance-latest/releases) page.
-2. Download `StudentClearance_v1.0_Installer.zip`.
-3. Extract the ZIP file to a folder on your computer.
-4. Run `setup.exe` to install the application.
-*Note: If Windows shows a "Protected your PC" warning, click **More Info** then **Run Anyway**.*
+## 🚀 How to Install (for Users)
 
-## Instructions (for devs)
+### ⚙️ Database Setup (Required First)
+`Before running the application, you must set up the SQL database:`
+1.  Ensure you have **SQL Server Express** or **LocalDB** installed.
+2.  **Download the Setup Script:**
+    <br>
+    <a href="https://github.com/Mendokk007/StudentClearance-latest/releases/download/v1.0/database_setup.sql" download>
+      <img src="https://img.shields.io/badge/Download-SQL_Script-blue?style=for-the-badge&logo=microsoftsqlserver" alt="Download SQL Script">
+    </a>
+3.  Open **SQL Server Management Studio (SSMS)** and connect to your local server.
+4.  Go to **File > Open > File...** and select the downloaded `database_setup.sql`.
+5.  Press **Execute (F5)** to create the tables and initial data.
+
+
+### 💻 Application Installation
+1.  Go to the [Releases](https://github.com/Mendokk007/StudentClearance-latest/releases) page.
+2.  Download `StudentClearance_v1.0_Installer.rar`.
+3.  **Extract** the RAR file to a folder on your computer.
+4.  Run `setup.exe` to install the application.
+5.  Once installed, you can open the app via the **StudentClearance** shortcut on your desktop.
+
+> [!IMPORTANT]
+> If Windows shows a "Protected your PC" warning during installation, click **More Info** then **Run Anyway**.
+
+<a href="https://www.virustotal.com/gui/file/acedddd4893913b69de3f89683dd7c728d8eda8d33235de659d98703369bc38c" target="_blank">
+  <img src="https://img.shields.io/badge/VirusTotal-Verified_Clean-0070ad?style=for-the-badge&logo=virustotal&logoColor=white" alt="VirusTotal Scan Result">
+</a> 
+<a href="https://www.virustotal.com/gui/file/572be7a08e2b55ba3e2032f1ae610b1f8610a0716d373e8a92e8f2061c97f654" target="_blank">
+  <img src="https://img.shields.io/badge/VirusTotal-Verified_Clean-0070ad?style=for-the-badge&logo=virustotal&logoColor=white" alt="VirusTotal Scan Result">
+</a> 
+<br>
+
+`Scan performed on the installer package and the setup.exe to ensure it is free from malware and safe for use.`
+
+---
+
+## 🚀🚀Instructions (for Devs)
 
 1. Open **SQL Server Management Studio (SSMS)**
 2. Connect to your SQL Server instance
@@ -321,6 +351,7 @@ PRINT 'Auto-Generated Student IDs:';
 PRINT '  STUD001, STUD002, STUD003, ...';
 PRINT '========================================';
 GO
+
 
 ```
 

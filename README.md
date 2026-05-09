@@ -589,7 +589,7 @@ Student	            STUD001	            student123
 Library Admin	    admin_library	    admin123
 SAO Admin	        admin_sao	        admin123
 Cashier Admin	    admin_cashier	    admin123
-Accounting Admin	admin_accounting	    admin123
+Accounting Admin	admin_accounting	admin123
 Dean's Office Admin	admin_dean	        admin123
 Records Admin	    admin_records	    admin123
 ─────────────────────────────────────────────────────

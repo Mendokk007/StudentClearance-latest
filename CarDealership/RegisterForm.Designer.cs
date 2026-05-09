@@ -7,7 +7,7 @@
         private System.Windows.Forms.Button btnClose;
         private System.Windows.Forms.TextBox txtRegUsername;
         private System.Windows.Forms.TextBox txtRegPassword;
-        private System.Windows.Forms.TextBox txtProgram;
+        private System.Windows.Forms.ComboBox cboProgram;
         private System.Windows.Forms.Button btnRegister;
         private System.Windows.Forms.Label lblBackToLogin;
         private System.Windows.Forms.Button btnDarkMode;
@@ -27,7 +27,7 @@
             this.txtRegUsername = new System.Windows.Forms.TextBox();
             this.lblStudentIDNote = new System.Windows.Forms.Label();
             this.txtRegPassword = new System.Windows.Forms.TextBox();
-            this.txtProgram = new System.Windows.Forms.TextBox();
+            this.cboProgram = new System.Windows.Forms.ComboBox();
             this.btnRegister = new System.Windows.Forms.Button();
             this.lblBackToLogin = new System.Windows.Forms.Label();
             this.btnDarkMode = new System.Windows.Forms.Button();
@@ -72,13 +72,21 @@
             this.txtRegPassword.Enter += new System.EventHandler(this.Field_Enter);
             this.txtRegPassword.Leave += new System.EventHandler(this.Field_Leave);
 
-            // Program textbox
-            this.txtProgram.Location = new System.Drawing.Point(60, 365);
-            this.txtProgram.Size = new System.Drawing.Size(260, 30);
-            this.txtProgram.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.txtProgram.Font = new System.Drawing.Font("Segoe UI", 14F);
-            this.txtProgram.Enter += new System.EventHandler(this.Field_Enter);
-            this.txtProgram.Leave += new System.EventHandler(this.Field_Leave);
+            // Program combobox
+            this.cboProgram.Location = new System.Drawing.Point(60, 365);
+            this.cboProgram.Size = new System.Drawing.Size(260, 30);
+            this.cboProgram.Font = new System.Drawing.Font("Segoe UI", 14F);
+            this.cboProgram.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboProgram.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cboProgram.Items.AddRange(new object[] {
+    "Select Program",
+    "BSIT",
+    "BSCS",
+    "BSBA",
+    "BSED",
+    "BSHM"
+});
+            this.cboProgram.SelectedIndex = 0;
 
             this.btnRegister.Location = new System.Drawing.Point(60, 430);
             this.btnRegister.Size = new System.Drawing.Size(260, 50);
@@ -114,7 +122,7 @@
                 this.txtRegUsername,
                 this.lblStudentIDNote,
                 this.txtRegPassword,
-                this.txtProgram,
+                this.cboProgram,
                 this.btnRegister,
                 this.lblBackToLogin,
                 this.btnDarkMode

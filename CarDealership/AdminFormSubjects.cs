@@ -10,16 +10,17 @@ using System.Windows.Forms;
 
 namespace CarDealership
 {
-    public partial class AdminForm : Form
+    public partial class AdminFormSubjects : Form
     {
         private readonly string _connectionString;
         private readonly string _username;
-        private readonly string _department;
+        private readonly string _assignedSubject;
         private IHubProxy _hubProxy;
         private HubConnection _hubConnection;
         private Timer _notificationTimer;
         private bool _signalRConnected = false;
         private AppContext _appContext;
+        // Activity Log Panel
         private Panel pnlActivityLog;
         private ListBox lstActivityLogs;
         private Label lblActivityLogTitle;
@@ -49,25 +50,25 @@ namespace CarDealership
             }
         }
 
-        public AdminForm(string connectionString, string username)
+        public AdminFormSubjects(string connectionString, string username, string assignedSubject)
         {
             this.DoubleBuffered = true;
             InitializeComponent();
             _connectionString = connectionString;
             _username = username;
-            _department = GetAdminDepartment();
+            _assignedSubject = assignedSubject;
 
-            this.Text = $"Admin Dashboard - {_department}";
-            lblDepartment.Text = _department;
-            lblAdminName.Text = $"Welcome, {_username}";
+            this.Text = $"Instructor Dashboard - {_assignedSubject}";
+            lblSubject.Text = _assignedSubject;
+            lblInstructorName.Text = $"Welcome, {_username}";
 
             ApplyRoundedCorners(this, 30);
             AddThemeToggleButton();
 
             MakeDraggable(pnlTopBar);
             MakeDraggable(pbLogo);
-            MakeDraggable(lblDepartment);
-            MakeDraggable(lblAdminName);
+            MakeDraggable(lblSubject);
+            MakeDraggable(lblInstructorName);
 
             SetupLogo();
             SetupActivityLogPanel();
@@ -117,25 +118,169 @@ namespace CarDealership
             pnlTopBar.Controls.Add(btnThemeToggle);
         }
 
-        private string GetAdminDepartment()
+        private void ApplyTheme()
         {
+            this.SuspendLayout();
+            pnlTopBar.SuspendLayout();
+            pnlContent.SuspendLayout();
+
             try
             {
-                using (var conn = new SqlConnection(_connectionString))
+                // Background
+                try
                 {
-                    conn.Open();
-                    string query = "SELECT Department FROM Users WHERE Username = @Username";
-                    using (var cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@Username", _username);
-                        return cmd.ExecuteScalar()?.ToString() ?? "";
-                    }
+                    string bgPath = isDarkMode
+                        ? Path.Combine(Application.StartupPath, "home_bg2.jpg")
+                        : Path.Combine(Application.StartupPath, "home_bg.jpg");
+
+                    if (File.Exists(bgPath))
+                        this.BackgroundImage = Image.FromFile(bgPath);
+                    else
+                        this.BackgroundImage = CreateSolidBackground(isDarkMode ? lunaDarkest : Color.FromArgb(240, 248, 255));
+                    this.BackgroundImageLayout = ImageLayout.Stretch;
                 }
+                catch
+                {
+                    this.BackgroundImage = CreateSolidBackground(isDarkMode ? lunaDarkest : Color.FromArgb(240, 248, 255));
+                    this.BackgroundImageLayout = ImageLayout.Stretch;
+                }
+
+                // Top bar
+                pnlTopBar.BackColor = isDarkMode ? Color.FromArgb(200, 1, 28, 64) : Color.FromArgb(200, 255, 255, 255);
+
+                // Content panel
+                pnlContent.BackColor = Color.Transparent;
+
+                // Colors
+                Color textColor = isDarkMode ? Color.White : lunaDarkest;
+                Color accentColor = lunaCyan;
+
+                // Labels
+                lblPendingTitle.ForeColor = textColor;
+                lblPendingTitle.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+                lblPendingCount.ForeColor = accentColor;
+                lblSubject.ForeColor = accentColor;
+                lblInstructorName.ForeColor = isDarkMode ? Color.FromArgb(185, 187, 190) : Color.FromArgb(80, 80, 80);
+
+                // Buttons
+                btnRefresh.BackColor = lunaTeal;
+                btnRefresh.ForeColor = Color.White;
+                btnRefresh.FlatStyle = FlatStyle.Flat;
+                btnRefresh.FlatAppearance.BorderSize = 0;
+                ApplyRoundedCornersToButton(btnRefresh, 15);
+
+                btnLogout.BackColor = lunaTeal;
+                btnLogout.ForeColor = Color.White;
+                btnLogout.FlatStyle = FlatStyle.Flat;
+                btnLogout.FlatAppearance.BorderSize = 0;
+                ApplyRoundedCornersToButton(btnLogout, 15);
+
+                // Theme toggle
+                if (btnThemeToggle != null)
+                {
+                    btnThemeToggle.ForeColor = textColor;
+                    ApplyRoundedCornersToButton(btnThemeToggle, 15);
+                }
+
+                // Logo
+                SetupLogo();
+
+                // Activity log panel theme
+                if (pnlActivityLog != null)
+                {
+                    pnlActivityLog.BackColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.FromArgb(240, 248, 255);
+                    lblActivityLogTitle.ForeColor = isDarkMode ? lunaLight : lunaTeal;
+                    btnCloseActivityLog.ForeColor = isDarkMode ? lunaLight : lunaTeal;
+                    lstActivityLogs.BackColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.FromArgb(255, 255, 255);
+                    lstActivityLogs.ForeColor = isDarkMode ? lunaLight : lunaDarkest;
+                    if (btnViewActivityLog != null)
+                        btnViewActivityLog.ForeColor = textColor;
+                }
+
+                // DataGridView — transparent with Luna styling
+                dgvSubmissions.BackgroundColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.FromArgb(240, 240, 245);
+                dgvSubmissions.GridColor = isDarkMode ? Color.FromArgb(30, 60, 100) : Color.FromArgb(200, 210, 220);
+                dgvSubmissions.ColumnHeadersDefaultCellStyle.BackColor = lunaTeal;
+                dgvSubmissions.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+                dgvSubmissions.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+                dgvSubmissions.ColumnHeadersDefaultCellStyle.SelectionBackColor = lunaTeal;
+                dgvSubmissions.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
+
+                // Row styling — fixes the gray selection issue
+                dgvSubmissions.DefaultCellStyle.BackColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.White;
+                dgvSubmissions.DefaultCellStyle.ForeColor = textColor;
+                dgvSubmissions.DefaultCellStyle.SelectionBackColor = lunaCyan;
+                dgvSubmissions.DefaultCellStyle.SelectionForeColor = Color.White;
+                dgvSubmissions.DefaultCellStyle.Font = new Font("Segoe UI", 10F);
+
+                // Also set RowTemplate for any dynamically added rows
+                dgvSubmissions.RowTemplate.DefaultCellStyle.BackColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.White;
+                dgvSubmissions.RowTemplate.DefaultCellStyle.ForeColor = textColor;
+                dgvSubmissions.RowTemplate.DefaultCellStyle.SelectionBackColor = lunaCyan;
+                dgvSubmissions.RowTemplate.DefaultCellStyle.SelectionForeColor = Color.White;
+
+                dgvSubmissions.EnableHeadersVisualStyles = false;
+                dgvSubmissions.BorderStyle = BorderStyle.None;
+                dgvSubmissions.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
             }
-            catch
+            finally
             {
-                return "";
+                pnlContent.ResumeLayout(false);
+                pnlContent.PerformLayout();
+                pnlTopBar.ResumeLayout(false);
+                pnlTopBar.PerformLayout();
+                this.ResumeLayout(false);
             }
+        }
+
+        private Image CreateSolidBackground(Color color)
+        {
+            Bitmap bmp = new Bitmap(900, 600);
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                g.Clear(color);
+            }
+            return bmp;
+        }
+
+        private void ApplyRoundedCorners(Control ctrl, int radius)
+        {
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                path.AddArc(0, 0, radius, radius, 180, 90);
+                path.AddArc(ctrl.Width - radius, 0, radius, radius, 270, 90);
+                path.AddArc(ctrl.Width - radius, ctrl.Height - radius, radius, radius, 0, 90);
+                path.AddArc(0, ctrl.Height - radius, radius, radius, 90, 90);
+                path.CloseFigure();
+                ctrl.Region = new Region(path);
+            }
+        }
+
+        private void ApplyRoundedCornersToButton(Button btn, int radius)
+        {
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                int r = radius;
+                path.AddArc(0, 0, r, r, 180, 90);
+                path.AddArc(btn.Width - r, 0, r, r, 270, 90);
+                path.AddArc(btn.Width - r, btn.Height - r, r, r, 0, 90);
+                path.AddArc(0, btn.Height - r, r, r, 90, 90);
+                path.CloseFigure();
+                btn.Region = new Region(path);
+            }
+        }
+
+        private void MakeGridTransparent()
+        {
+            // Use solid color instead of transparent
+            dgvSubmissions.BackgroundColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.FromArgb(240, 240, 245);
+            dgvSubmissions.GridColor = isDarkMode ? Color.FromArgb(30, 60, 100) : Color.FromArgb(200, 210, 220);
+
+            typeof(DataGridView).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty |
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic,
+                null, dgvSubmissions, new object[] { true });
         }
 
         private void SetupLogo()
@@ -149,7 +294,7 @@ namespace CarDealership
                 using (var brush = new SolidBrush(isDarkMode ? lunaLight : lunaDarkest))
                 {
                     var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-                    g.DrawString("ADMIN", font, brush, new Rectangle(0, 0, 100, 25), sf);
+                    g.DrawString("INSTRUCTOR", font, brush, new Rectangle(0, 0, 100, 25), sf);
                     g.DrawString("PANEL", new Font("Segoe UI", 8, FontStyle.Bold), brush, new Rectangle(0, 25, 100, 25), sf);
                 }
             }
@@ -198,7 +343,6 @@ namespace CarDealership
             lstActivityLogs.DrawItem += LstActivityLogs_DrawItem;
             pnlActivityLog.Controls.Add(lstActivityLogs);
 
-            // 📋 button
             btnViewActivityLog = new Button();
             btnViewActivityLog.Text = "📋";
             btnViewActivityLog.Font = new Font("Segoe UI", 14);
@@ -258,162 +402,6 @@ namespace CarDealership
             e.DrawFocusRectangle();
         }
 
-        private void ApplyTheme()
-        {
-            this.SuspendLayout();
-            pnlTopBar.SuspendLayout();
-            pnlContent.SuspendLayout();
-
-            try
-            {
-                // Background
-                try
-                {
-                    string bgPath = isDarkMode
-                        ? Path.Combine(Application.StartupPath, "home_bg2.jpg")
-                        : Path.Combine(Application.StartupPath, "home_bg.jpg");
-
-                    if (File.Exists(bgPath))
-                        this.BackgroundImage = Image.FromFile(bgPath);
-                    else
-                        this.BackgroundImage = CreateSolidBackground(isDarkMode ? lunaDarkest : Color.FromArgb(240, 248, 255));
-                    this.BackgroundImageLayout = ImageLayout.Stretch;
-                }
-                catch
-                {
-                    this.BackgroundImage = CreateSolidBackground(isDarkMode ? lunaDarkest : Color.FromArgb(240, 248, 255));
-                    this.BackgroundImageLayout = ImageLayout.Stretch;
-                }
-
-                // Top bar
-                pnlTopBar.BackColor = isDarkMode ? Color.FromArgb(200, 1, 28, 64) : Color.FromArgb(200, 255, 255, 255);
-
-                // Content panel
-                pnlContent.BackColor = Color.Transparent;
-
-                // Colors
-                Color textColor = isDarkMode ? Color.White : lunaDarkest;
-                Color accentColor = lunaCyan;
-
-                // Labels
-                lblPendingTitle.ForeColor = textColor;
-                lblPendingTitle.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
-                lblPendingCount.ForeColor = accentColor;
-                lblDepartment.ForeColor = accentColor;
-                lblDepartment.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
-                lblAdminName.ForeColor = isDarkMode ? Color.FromArgb(185, 187, 190) : Color.FromArgb(80, 80, 80);
-
-                // Buttons
-                btnRefresh.BackColor = lunaTeal;
-                btnRefresh.ForeColor = Color.White;
-                btnRefresh.FlatStyle = FlatStyle.Flat;
-                btnRefresh.FlatAppearance.BorderSize = 0;
-                ApplyRoundedCornersToButton(btnRefresh, 15);
-
-                btnLogout.BackColor = lunaTeal;
-                btnLogout.ForeColor = Color.White;
-                btnLogout.FlatStyle = FlatStyle.Flat;
-                btnLogout.FlatAppearance.BorderSize = 0;
-                ApplyRoundedCornersToButton(btnLogout, 15);
-
-                // Theme toggle
-                if (btnThemeToggle != null)
-                {
-                    btnThemeToggle.ForeColor = textColor;
-                    ApplyRoundedCornersToButton(btnThemeToggle, 15);
-                }
-
-                // Logo
-                SetupLogo();
-
-                // Activity log panel theme
-                if (pnlActivityLog != null)
-                {
-                    pnlActivityLog.BackColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.FromArgb(240, 248, 255);
-                    lblActivityLogTitle.ForeColor = isDarkMode ? lunaLight : lunaTeal;
-                    btnCloseActivityLog.ForeColor = isDarkMode ? lunaLight : lunaTeal;
-                    lstActivityLogs.BackColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.FromArgb(255, 255, 255);
-                    lstActivityLogs.ForeColor = isDarkMode ? lunaLight : lunaDarkest;
-                    if (btnViewActivityLog != null)
-                        btnViewActivityLog.ForeColor = textColor;
-                }
-
-                // DataGridView
-                dgvSubmissions.BackgroundColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.FromArgb(240, 240, 245);
-                dgvSubmissions.ColumnHeadersDefaultCellStyle.BackColor = lunaTeal;
-                dgvSubmissions.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-                dgvSubmissions.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-                dgvSubmissions.ColumnHeadersDefaultCellStyle.SelectionBackColor = lunaTeal;
-                dgvSubmissions.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
-                dgvSubmissions.RowTemplate.DefaultCellStyle.BackColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.White;
-                dgvSubmissions.RowTemplate.DefaultCellStyle.ForeColor = textColor;
-                dgvSubmissions.RowTemplate.DefaultCellStyle.SelectionBackColor = lunaCyan;
-                dgvSubmissions.RowTemplate.DefaultCellStyle.SelectionForeColor = Color.White;
-                dgvSubmissions.RowTemplate.DefaultCellStyle.Font = new Font("Segoe UI", 10F);
-                dgvSubmissions.GridColor = isDarkMode ? Color.FromArgb(30, 60, 100) : Color.FromArgb(200, 210, 220);
-                dgvSubmissions.EnableHeadersVisualStyles = false;
-                dgvSubmissions.BorderStyle = BorderStyle.None;
-                dgvSubmissions.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
-            }
-            finally
-            {
-                pnlContent.ResumeLayout(false);
-                pnlContent.PerformLayout();
-                pnlTopBar.ResumeLayout(false);
-                pnlTopBar.PerformLayout();
-                this.ResumeLayout(false);
-            }
-        }
-
-        private Image CreateSolidBackground(Color color)
-        {
-            Bitmap bmp = new Bitmap(900, 600);
-            using (Graphics g = Graphics.FromImage(bmp))
-            {
-                g.Clear(color);
-            }
-            return bmp;
-        }
-
-        private void ApplyRoundedCorners(Control ctrl, int radius)
-        {
-            using (GraphicsPath path = new GraphicsPath())
-            {
-                path.AddArc(0, 0, radius, radius, 180, 90);
-                path.AddArc(ctrl.Width - radius, 0, radius, radius, 270, 90);
-                path.AddArc(ctrl.Width - radius, ctrl.Height - radius, radius, radius, 0, 90);
-                path.AddArc(0, ctrl.Height - radius, radius, radius, 90, 90);
-                path.CloseFigure();
-                ctrl.Region = new Region(path);
-            }
-        }
-
-        private void ApplyRoundedCornersToButton(Button btn, int radius)
-        {
-            using (GraphicsPath path = new GraphicsPath())
-            {
-                int r = radius;
-                path.AddArc(0, 0, r, r, 180, 90);
-                path.AddArc(btn.Width - r, 0, r, r, 270, 90);
-                path.AddArc(btn.Width - r, btn.Height - r, r, r, 0, 90);
-                path.AddArc(0, btn.Height - r, r, r, 90, 90);
-                path.CloseFigure();
-                btn.Region = new Region(path);
-            }
-        }
-
-        private void MakeGridTransparent()
-        {
-            dgvSubmissions.BackgroundColor = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.FromArgb(240, 240, 245);
-            dgvSubmissions.GridColor = isDarkMode ? Color.FromArgb(30, 60, 100) : Color.FromArgb(200, 210, 220);
-
-            typeof(DataGridView).InvokeMember("DoubleBuffered",
-                System.Reflection.BindingFlags.SetProperty |
-                System.Reflection.BindingFlags.Instance |
-                System.Reflection.BindingFlags.NonPublic,
-                null, dgvSubmissions, new object[] { true });
-        }
-
         private async void InitializeSignalR()
         {
             try
@@ -421,7 +409,7 @@ namespace CarDealership
                 _hubConnection = new HubConnection("http://localhost:8080/");
                 _hubProxy = _hubConnection.CreateHubProxy("clearanceHub");
 
-                _hubProxy.On<string, string>("newSubmission", (message, studentUsername) =>
+                _hubProxy.On<string, string>("newSubjectSubmission", (message, studentUsername) =>
                 {
                     if (!this.IsDisposed)
                     {
@@ -439,7 +427,7 @@ namespace CarDealership
                     {
                         this.Invoke((Action)(() =>
                         {
-                            Console.WriteLine("SignalR connection closed for admin");
+                            Console.WriteLine("SignalR connection closed for instructor");
                             _signalRConnected = false;
                             SetupNotificationTimer();
                         }));
@@ -448,8 +436,8 @@ namespace CarDealership
 
                 await _hubConnection.Start();
                 _signalRConnected = true;
-                await _hubProxy.Invoke("JoinAdminGroup", _department);
-                Console.WriteLine($"Admin {_username} connected to SignalR for department {_department}");
+                await _hubProxy.Invoke("JoinInstructorGroup", _assignedSubject);
+                Console.WriteLine($"Instructor {_username} connected to SignalR for subject {_assignedSubject}");
             }
             catch (Exception ex)
             {
@@ -477,10 +465,10 @@ namespace CarDealership
                 using (var conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
-                    using (var cmd = new SqlCommand("sp_GetPendingSubmissions", conn))
+                    using (var cmd = new SqlCommand("sp_GetPendingSubjectSubmissions", conn))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
-                        cmd.Parameters.AddWithValue("@DepartmentName", _department);
+                        cmd.Parameters.AddWithValue("@SubjectName", _assignedSubject);
 
                         var dt = new DataTable();
                         using (var adapter = new SqlDataAdapter(cmd))
@@ -501,7 +489,7 @@ namespace CarDealership
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error loading submissions: " + ex.Message);
+                Console.WriteLine("Error loading subject submissions: " + ex.Message);
             }
         }
 
@@ -549,6 +537,8 @@ namespace CarDealership
                 dgvSubmissions.Columns["StudentUsername"].HeaderText = "Username";
             if (dgvSubmissions.Columns.Contains("StudentName"))
                 dgvSubmissions.Columns["StudentName"].HeaderText = "Full Name";
+            if (dgvSubmissions.Columns.Contains("StudentProgram"))
+                dgvSubmissions.Columns["StudentProgram"].HeaderText = "Program";
             if (dgvSubmissions.Columns.Contains("ImageFileName"))
                 dgvSubmissions.Columns["ImageFileName"].HeaderText = "File";
             if (dgvSubmissions.Columns.Contains("SubmittedAt"))
@@ -587,8 +577,8 @@ namespace CarDealership
                     }
                 }
 
-                var reviewForm = new ReviewSubmissionForm(_connectionString, submissionId,
-                    studentName, _department, imageData, _username);
+                var reviewForm = new ReviewSubjectForm(_connectionString, submissionId,
+                    studentName, _assignedSubject, imageData, _username);
                 reviewForm.OnReviewComplete += () =>
                 {
                     LoadPendingSubmissions();
@@ -597,7 +587,7 @@ namespace CarDealership
                     {
                         try
                         {
-                            _hubProxy.Invoke("NotifyStatusUpdate", studentUsername, _department, "Reviewed");
+                            _hubProxy.Invoke("NotifySubjectStatusUpdate", studentUsername, _assignedSubject, "Reviewed");
                         }
                         catch (Exception ex)
                         {
@@ -625,7 +615,7 @@ namespace CarDealership
                 {
                     if (_hubConnection != null && _hubConnection.State == Microsoft.AspNet.SignalR.Client.ConnectionState.Connected)
                     {
-                        _hubProxy?.Invoke("LeaveAdminGroup", _department);
+                        _hubProxy?.Invoke("LeaveInstructorGroup", _assignedSubject);
                         _hubConnection.Stop();
                         _hubConnection = null;
                     }

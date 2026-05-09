@@ -9,16 +9,17 @@ using System.Windows.Forms;
 
 namespace CarDealership
 {
-    public partial class ReviewSubmissionForm : Form
+    public partial class ReviewSubjectForm : Form
     {
         private readonly string _connectionString;
         private readonly int _submissionId;
         private readonly string _studentName;
-        private readonly string _department;
+        private readonly string _subject;
         private readonly byte[] _imageData;
         private readonly string _reviewer;
 
-        // Luna Theme (always dark)
+        // Luna Theme
+        private bool isDarkMode = true;
         Color lunaDarkest = Color.FromArgb(1, 28, 64);
         Color lunaTeal = Color.FromArgb(38, 101, 140);
         Color lunaCyan = Color.FromArgb(84, 172, 191);
@@ -41,20 +42,20 @@ namespace CarDealership
             }
         }
 
-        public ReviewSubmissionForm(string connectionString, int submissionId,
-            string studentName, string department, byte[] imageData, string reviewer)
+        public ReviewSubjectForm(string connectionString, int submissionId,
+            string studentName, string subject, byte[] imageData, string reviewer)
         {
             this.DoubleBuffered = true;
             InitializeComponent();
             _connectionString = connectionString;
             _submissionId = submissionId;
             _studentName = studentName;
-            _department = department;
+            _subject = subject;
             _imageData = imageData;
             _reviewer = reviewer;
 
             lblStudent.Text = $"Student: {studentName}";
-            lblDepartment.Text = $"Department: {department}";
+            lblSubject.Text = $"Subject: {subject}";
 
             ApplyRoundedCorners(this, 20);
             ApplyTheme();
@@ -86,24 +87,24 @@ namespace CarDealership
             try
             {
                 // Form background
-                this.BackColor = lunaDarkest;
+                this.BackColor = isDarkMode ? lunaDarkest : Color.FromArgb(240, 248, 255);
 
                 // Top bar
-                pnlTopBar.BackColor = Color.FromArgb(1, 20, 50);
+                pnlTopBar.BackColor = isDarkMode ? Color.FromArgb(1, 20, 50) : Color.FromArgb(220, 235, 250);
 
                 // Colors
-                Color textColor = Color.White;
+                Color textColor = isDarkMode ? Color.White : lunaDarkest;
                 Color accentColor = lunaCyan;
-                Color inputBg = Color.FromArgb(1, 20, 50);
+                Color inputBg = isDarkMode ? Color.FromArgb(1, 20, 50) : Color.White;
 
                 // Labels
                 lblTitle.ForeColor = textColor;
                 lblStudent.ForeColor = textColor;
-                lblDepartment.ForeColor = accentColor;
-                lblRejectionReason.ForeColor = Color.FromArgb(185, 187, 190);
+                lblSubject.ForeColor = accentColor;
+                lblReason.ForeColor = isDarkMode ? Color.FromArgb(185, 187, 190) : Color.FromArgb(80, 80, 80);
 
                 // PictureBox
-                pbSubmission.BackColor = Color.FromArgb(1, 20, 50);
+                pbSubmission.BackColor = isDarkMode ? Color.FromArgb(1, 20, 50) : Color.FromArgb(230, 235, 240);
 
                 // TextBox
                 txtRejectionReason.BackColor = inputBg;
@@ -115,19 +116,19 @@ namespace CarDealership
                 btnApprove.ForeColor = Color.White;
                 btnApprove.FlatStyle = FlatStyle.Flat;
                 btnApprove.FlatAppearance.BorderSize = 0;
-                ApplyRoundedCornersToButton(btnApprove, 15);
+                ApplyRoundedCornersToButton(btnApprove, 20);
 
                 btnReject.BackColor = Color.FromArgb(180, 60, 80);
                 btnReject.ForeColor = Color.White;
                 btnReject.FlatStyle = FlatStyle.Flat;
                 btnReject.FlatAppearance.BorderSize = 0;
-                ApplyRoundedCornersToButton(btnReject, 15);
+                ApplyRoundedCornersToButton(btnReject, 20);
 
-                btnCancel.BackColor = Color.FromArgb(80, 80, 90);
+                btnCancel.BackColor = isDarkMode ? Color.FromArgb(80, 80, 90) : Color.FromArgb(180, 185, 195);
                 btnCancel.ForeColor = Color.White;
                 btnCancel.FlatStyle = FlatStyle.Flat;
                 btnCancel.FlatAppearance.BorderSize = 0;
-                ApplyRoundedCornersToButton(btnCancel, 15);
+                ApplyRoundedCornersToButton(btnCancel, 20);
             }
             finally
             {
@@ -204,9 +205,9 @@ namespace CarDealership
             var bmp = new Bitmap(550, 250);
             using (var g = Graphics.FromImage(bmp))
             {
-                g.Clear(Color.FromArgb(1, 20, 50));
+                g.Clear(isDarkMode ? Color.FromArgb(1, 20, 50) : Color.FromArgb(230, 235, 240));
                 using (var font = new Font("Segoe UI", 12))
-                using (var brush = new SolidBrush(Color.FromArgb(185, 187, 190)))
+                using (var brush = new SolidBrush(isDarkMode ? Color.FromArgb(185, 187, 190) : Color.FromArgb(80, 80, 80)))
                 {
                     var sf = new StringFormat
                     {
@@ -248,7 +249,7 @@ namespace CarDealership
                 using (var conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
-                    using (var cmd = new SqlCommand("sp_ReviewClearance", conn))
+                    using (var cmd = new SqlCommand("sp_ReviewSubjectClearance", conn))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.Parameters.AddWithValue("@SubmissionID", _submissionId);

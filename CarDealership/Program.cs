@@ -17,8 +17,9 @@ namespace CarDealership
     public class AppContext : ApplicationContext
     {
         private LoginForm _loginForm;
-        private HomeForm _homeForm;
+        private StudentDashboardForm _studentDashboardForm;  // NEW
         private AdminForm _adminForm;
+        private AdminFormSubjects _adminFormSubjects;
 
         public AppContext()
         {
@@ -28,8 +29,9 @@ namespace CarDealership
         public void OpenLoginForm()
         {
             // Clean up existing forms
-            CloseAndDisposeForm(ref _homeForm);
+            CloseAndDisposeForm(ref _studentDashboardForm);  // NEW
             CloseAndDisposeForm(ref _adminForm);
+            CloseAndDisposeForm(ref _adminFormSubjects);
 
             _loginForm = new LoginForm();
             _loginForm.SetAppContext(this);
@@ -47,27 +49,30 @@ namespace CarDealership
             _loginForm = null;
         }
 
-        public void OpenHomeForm(string connectionString, string username)
+        // =============================================
+        // STUDENT DASHBOARD (Subjects + Departments)
+        // =============================================
+        public void OpenStudentDashboardForm(string connectionString, string username)
         {
-            CloseAndDisposeForm(ref _homeForm);
+            CloseAndDisposeForm(ref _studentDashboardForm);
 
             if (_loginForm != null && !_loginForm.IsDisposed)
             {
                 _loginForm.Hide();
             }
 
-            _homeForm = new HomeForm(connectionString, username);
-            _homeForm.SetAppContext(this);
-            _homeForm.FormClosed += OnHomeFormClosed;
-            _homeForm.Show();
+            _studentDashboardForm = new StudentDashboardForm(connectionString, username);
+            _studentDashboardForm.SetAppContext(this);
+            _studentDashboardForm.FormClosed += OnStudentDashboardFormClosed;
+            _studentDashboardForm.Show();
         }
 
-        private void OnHomeFormClosed(object sender, FormClosedEventArgs e)
+        private void OnStudentDashboardFormClosed(object sender, FormClosedEventArgs e)
         {
-            var home = sender as HomeForm;
-            if (home != null)
+            var dashboard = sender as StudentDashboardForm;
+            if (dashboard != null)
             {
-                if (!home.LoggedOut)
+                if (!dashboard.LoggedOut)
                 {
                     OpenLoginForm();
                 }
@@ -75,7 +80,7 @@ namespace CarDealership
                 {
                     if (_loginForm != null && !_loginForm.IsDisposed && !_loginForm.Visible)
                     {
-                        _loginForm.ClearFields(); // Add this line
+                        _loginForm.ClearFields();
                         _loginForm.Show();
                         _loginForm.BringToFront();
                     }
@@ -85,9 +90,14 @@ namespace CarDealership
                     }
                 }
             }
-            _homeForm = null;
+            _studentDashboardForm = null;
         }
 
+        
+
+        // =============================================
+        // ADMIN NAVIGATION (Department Clearance)
+        // =============================================
         public void OpenAdminForm(string connectionString, string username)
         {
             CloseAndDisposeForm(ref _adminForm);
@@ -107,7 +117,7 @@ namespace CarDealership
         {
             if (_loginForm != null && !_loginForm.IsDisposed)
             {
-                _loginForm.ClearFields(); // Add this line to clear fields
+                _loginForm.ClearFields();
                 _loginForm.Show();
                 _loginForm.BringToFront();
             }
@@ -118,6 +128,42 @@ namespace CarDealership
             _adminForm = null;
         }
 
+        // =============================================
+        // INSTRUCTOR NAVIGATION (Subject Clearance)
+        // =============================================
+        public void OpenAdminFormSubjects(string connectionString, string username, string assignedSubject)
+        {
+            CloseAndDisposeForm(ref _adminFormSubjects);
+
+            if (_loginForm != null && !_loginForm.IsDisposed)
+            {
+                _loginForm.Hide();
+            }
+
+            _adminFormSubjects = new AdminFormSubjects(connectionString, username, assignedSubject);
+            _adminFormSubjects.SetAppContext(this);
+            _adminFormSubjects.FormClosed += OnAdminFormSubjectsClosed;
+            _adminFormSubjects.Show();
+        }
+
+        private void OnAdminFormSubjectsClosed(object sender, FormClosedEventArgs e)
+        {
+            if (_loginForm != null && !_loginForm.IsDisposed)
+            {
+                _loginForm.ClearFields();
+                _loginForm.Show();
+                _loginForm.BringToFront();
+            }
+            else
+            {
+                OpenLoginForm();
+            }
+            _adminFormSubjects = null;
+        }
+
+        // =============================================
+        // HELPER METHODS
+        // =============================================
         private void CloseAndDisposeForm<T>(ref T form) where T : Form
         {
             if (form != null && !form.IsDisposed)

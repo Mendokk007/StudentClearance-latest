@@ -74,8 +74,6 @@
             this.btnClose.Text = "X";
             this.btnClose.UseVisualStyleBackColor = false;
             this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
-            this.btnClose.MouseEnter += new System.EventHandler(this.btnClose_MouseEnter);
-            this.btnClose.MouseLeave += new System.EventHandler(this.btnClose_MouseLeave);
 
             // pnlProfileBg
             this.pnlProfileBg.BackColor = System.Drawing.Color.FromArgb(47, 49, 54);

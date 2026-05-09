@@ -244,33 +244,42 @@ namespace CarDealership
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
-                    string query = "SELECT Role FROM Users WHERE Username = @username AND Password = @password";
+                    // UPDATED: Now also selects AssignedSubject for instructors
+                    string query = "SELECT Role, ISNULL(AssignedSubject, '') AS AssignedSubject FROM Users WHERE Username = @username AND Password = @password";
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@username", username);
                         cmd.Parameters.AddWithValue("@password", password);
-                        object result = cmd.ExecuteScalar();
 
-                        if (result != null)
+                        using (SqlDataReader reader = cmd.ExecuteReader())
                         {
-                            string role = result.ToString();
-                            NavigatedAway = true;
-                            this.Hide();
+                            if (reader.Read())
+                            {
+                                string role = reader["Role"].ToString();
+                                string assignedSubject = reader["AssignedSubject"].ToString();
+                                NavigatedAway = true;
+                                this.Hide();
 
-                            if (role == "Student")
-                            {
-                                _appContext?.OpenHomeForm(_connectionString, username);
+                                if (role == "Student")
+                                {
+                                    _appContext?.OpenStudentDashboardForm(_connectionString, username);
+                                }
+                                else if (role == "Admin")
+                                {
+                                    _appContext?.OpenAdminForm(_connectionString, username);
+                                }
+                                // NEW: Instructor routing
+                                else if (role == "Instructor")
+                                {
+                                    _appContext?.OpenAdminFormSubjects(_connectionString, username, assignedSubject);
+                                }
                             }
-                            else if (role == "Admin")
+                            else
                             {
-                                _appContext?.OpenAdminForm(_connectionString, username);
+                                MessageBox.Show("Invalid Student ID or password.", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                txtPassword.Clear();
+                                txtPassword.Focus();
                             }
-                        }
-                        else
-                        {
-                            MessageBox.Show("Invalid Student ID or password.", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            txtPassword.Clear();
-                            txtPassword.Focus();
                         }
                     }
                 }

@@ -15,7 +15,7 @@ namespace CarDealership
         private string focusedField = "";
         private bool isDarkMode = true;
         private bool isSliding = false;
-        private string _reservedStudentID = null; // ID shown but not yet committed
+        private string _reservedStudentID = null;
 
         private static readonly Font FontTitle = new Font("Segoe UI Semibold", 52F);
         private static readonly Font FontSubtitle = new Font("Segoe UI", 18F);
@@ -65,10 +65,9 @@ namespace CarDealership
             SetupHoverEffects();
             SetupDefocusHandlers();
 
-            // Make Student ID read-only and show the next ID
             txtRegUsername.ReadOnly = true;
             txtRegUsername.TabStop = false;
-            LoadPreviewStudentID(); // Show ID immediately but don't commit
+            LoadPreviewStudentID();
 
             this.ResumeLayout(false);
             this.Load += RegisterForm_Load;
@@ -76,7 +75,6 @@ namespace CarDealership
             this.FormClosed += (s, e) => DisposeCachedResources();
         }
 
-        // ✅ Show the next Student ID without committing to database yet
         private void LoadPreviewStudentID()
         {
             try
@@ -84,7 +82,6 @@ namespace CarDealership
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
-                    // Peek at the next number WITHOUT incrementing
                     string query = "SELECT LastNumber + 1 FROM StudentIDCounter";
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
@@ -108,7 +105,6 @@ namespace CarDealership
             else return "STUD" + number;
         }
 
-        // ✅ Generate and COMMIT Student ID (called inside transaction)
         private string GenerateStudentID(SqlConnection conn, SqlTransaction transaction)
         {
             using (SqlCommand cmd = new SqlCommand("sp_GenerateStudentID", conn, transaction))
@@ -122,23 +118,18 @@ namespace CarDealership
             }
         }
 
-        // ✅ FIXED: Defocus only for non-textbox controls
         private void SetupDefocusHandlers()
         {
-            // Form and panel background clicks
             this.MouseClick += (s, e) => DefocusAll();
             pnlMain.MouseClick += (s, e) => DefocusAll();
 
-            // Only attach to NON-textbox controls
             btnRegister.MouseClick += (s, e) => DefocusAll();
             lblBackToLogin.MouseClick += (s, e) => DefocusAll();
             btnDarkMode.MouseClick += (s, e) => DefocusAll();
             btnClose.MouseClick += (s, e) => DefocusAll();
             lblStudentIDNote.MouseClick += (s, e) => DefocusAll();
 
-            // Textbox lost focus
             txtRegPassword.LostFocus += (s, e) => { focusedField = ""; pnlMain.Invalidate(); };
-            txtProgram.LostFocus += (s, e) => { focusedField = ""; pnlMain.Invalidate(); };
         }
 
         private void DefocusAll()
@@ -214,8 +205,10 @@ namespace CarDealership
             Color solidBg = isDarkMode ? Color.FromArgb(1, 28, 64) : Color.White;
 
             txtRegUsername.BackColor = isDarkMode ? Color.FromArgb(10, 35, 70) : Color.FromArgb(240, 240, 240);
-            txtRegPassword.BackColor = txtProgram.BackColor = solidBg;
-            txtRegUsername.ForeColor = txtRegPassword.ForeColor = txtProgram.ForeColor = isDarkMode ? Color.White : Color.Black;
+            txtRegPassword.BackColor = solidBg;
+            cboProgram.BackColor = solidBg;
+            cboProgram.ForeColor = isDarkMode ? Color.White : Color.Black;
+            txtRegUsername.ForeColor = txtRegPassword.ForeColor = isDarkMode ? Color.White : Color.Black;
 
             lblStudentIDNote.ForeColor = isDarkMode ? Color.FromArgb(185, 187, 190) : Color.FromArgb(100, 100, 100);
 
@@ -249,7 +242,6 @@ namespace CarDealership
 
             e.Graphics.DrawLine(penInactive, 55, 275, 325, 275);
             e.Graphics.DrawLine(focusedField == "pass" ? penActive : penInactive, 55, 335, 325, 335);
-            e.Graphics.DrawLine(focusedField == "prog" ? penActive : penInactive, 55, 395, 325, 395);
 
             using (GraphicsPath btnPath = new GraphicsPath())
             {
@@ -264,7 +256,7 @@ namespace CarDealership
         private void btnRegister_Click(object sender, EventArgs e)
         {
             string password = txtRegPassword.Text.Trim();
-            string program = txtProgram.Text.Trim();
+            string program = cboProgram.SelectedItem?.ToString() ?? "";
 
             if (string.IsNullOrEmpty(password))
             {
@@ -272,10 +264,10 @@ namespace CarDealership
                 txtRegPassword.Focus();
                 return;
             }
-            if (string.IsNullOrEmpty(program))
+            if (string.IsNullOrEmpty(program) || program == "Select Program...")
             {
-                MessageBox.Show("Please enter your program (e.g., BSIT).", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                txtProgram.Focus();
+                MessageBox.Show("Please select your program.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                cboProgram.Focus();
                 return;
             }
             if (password.Length < 6)
@@ -294,7 +286,6 @@ namespace CarDealership
                     {
                         try
                         {
-                            // ✅ Now actually commit the Student ID
                             string username = GenerateStudentID(conn, transaction);
 
                             string insertQuery = @"INSERT INTO Users (Username, Password, FullName, Program, Role) 
@@ -331,7 +322,6 @@ namespace CarDealership
         private void SetPlaceholders()
         {
             SendMessage(txtRegPassword.Handle, 0x1501, 0, "Password");
-            SendMessage(txtProgram.Handle, 0x1501, 0, "Program (e.g. BSIT)");
         }
 
         private async void lblBackToLogin_Click(object sender, EventArgs e)
@@ -361,7 +351,7 @@ namespace CarDealership
         private void Field_Enter(object sender, EventArgs e)
         {
             if (sender == txtRegUsername) return;
-            focusedField = (sender == txtRegPassword) ? "pass" : "prog";
+            focusedField = (sender == txtRegPassword) ? "pass" : "";
             pnlMain.Invalidate();
         }
 

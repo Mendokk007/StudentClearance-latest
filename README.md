@@ -1,4 +1,4 @@
-# Student Clearance Database Setup
+# Student Clearance System
 
 ## 🚀 How to Install (for Users)
 

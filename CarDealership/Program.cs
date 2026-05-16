@@ -17,9 +17,10 @@ namespace CarDealership
     public class AppContext : ApplicationContext
     {
         private LoginForm _loginForm;
-        private StudentDashboardForm _studentDashboardForm;  // NEW
+        private StudentDashboardForm _studentDashboardForm;
         private AdminForm _adminForm;
         private AdminFormSubjects _adminFormSubjects;
+        private SuperAdminForm _superAdminForm;
 
         public AppContext()
         {
@@ -28,10 +29,10 @@ namespace CarDealership
 
         public void OpenLoginForm()
         {
-            // Clean up existing forms
-            CloseAndDisposeForm(ref _studentDashboardForm);  // NEW
+            CloseAndDisposeForm(ref _studentDashboardForm);
             CloseAndDisposeForm(ref _adminForm);
             CloseAndDisposeForm(ref _adminFormSubjects);
+            CloseAndDisposeForm(ref _superAdminForm);
 
             _loginForm = new LoginForm();
             _loginForm.SetAppContext(this);
@@ -92,8 +93,6 @@ namespace CarDealership
             }
             _studentDashboardForm = null;
         }
-
-        
 
         // =============================================
         // ADMIN NAVIGATION (Department Clearance)
@@ -159,6 +158,32 @@ namespace CarDealership
                 OpenLoginForm();
             }
             _adminFormSubjects = null;
+        }
+
+        // =============================================
+        // SUPER ADMIN NAVIGATION (Operator Panel)
+        // =============================================
+        public void OpenSuperAdminForm(string connectionString, string username)
+        {
+            CloseAndDisposeForm(ref _superAdminForm);
+
+            if (_loginForm != null && !_loginForm.IsDisposed)
+                _loginForm.Hide();
+
+            _superAdminForm = new SuperAdminForm(connectionString, username);
+            _superAdminForm.SetAppContext(this);
+            _superAdminForm.FormClosed += (s, e) =>
+            {
+                if (_loginForm != null && !_loginForm.IsDisposed)
+                {
+                    _loginForm.ClearFields();
+                    _loginForm.Show();
+                    _loginForm.BringToFront();
+                }
+                else OpenLoginForm();
+                _superAdminForm = null;
+            };
+            _superAdminForm.Show();
         }
 
         // =============================================

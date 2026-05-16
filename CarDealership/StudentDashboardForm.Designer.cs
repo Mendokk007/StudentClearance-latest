@@ -69,16 +69,14 @@
         private System.Windows.Forms.Button btnRecordsSubmit;
         private System.Windows.Forms.Label lblRecordsStatus;
 
-        // Certificate Panel (Step 3)
+        // Certificate Panel (Step 3) — SIMPLIFIED
         private System.Windows.Forms.Panel pnlCertificate;
         private System.Windows.Forms.Label lblCertTitle;
         private System.Windows.Forms.Label lblCertStudentID;
         private System.Windows.Forms.Label lblCertProgram;
         private System.Windows.Forms.Label lblCertDate;
-        private System.Windows.Forms.Label lblCertSubjectsTitle;
-        private System.Windows.Forms.Label lblCertSubjectsList;
-        private System.Windows.Forms.Label lblCertDeptsTitle;
-        private System.Windows.Forms.Label lblCertDeptsList;
+        private System.Windows.Forms.Label lblCertSubjectsCheck;
+        private System.Windows.Forms.Label lblCertDeptsCheck;
         private System.Windows.Forms.Button btnDownloadCert;
 
         // Step Navigation
@@ -196,10 +194,8 @@
             this.lblCertStudentID = new System.Windows.Forms.Label();
             this.lblCertProgram = new System.Windows.Forms.Label();
             this.lblCertDate = new System.Windows.Forms.Label();
-            this.lblCertSubjectsTitle = new System.Windows.Forms.Label();
-            this.lblCertSubjectsList = new System.Windows.Forms.Label();
-            this.lblCertDeptsTitle = new System.Windows.Forms.Label();
-            this.lblCertDeptsList = new System.Windows.Forms.Label();
+            this.lblCertSubjectsCheck = new System.Windows.Forms.Label();
+            this.lblCertDeptsCheck = new System.Windows.Forms.Label();
             this.btnDownloadCert = new System.Windows.Forms.Button();
 
             // Step Navigation
@@ -313,9 +309,8 @@
             this.progressSubjects.Name = "progressSubjects";
             this.progressSubjects.Size = new System.Drawing.Size(850, 25);
             this.progressSubjects.TabIndex = 2;
-            // 
-            // pnlSubject1
-            // 
+
+            // Subject cards 1-6 (unchanged)
             this.pnlSubject1.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.pnlSubject1.Controls.Add(this.lblSubject1);
             this.pnlSubject1.Controls.Add(this.btnSubject1Submit);
@@ -324,9 +319,6 @@
             this.pnlSubject1.Name = "pnlSubject1";
             this.pnlSubject1.Size = new System.Drawing.Size(415, 95);
             this.pnlSubject1.TabIndex = 3;
-            // 
-            // lblSubject1
-            // 
             this.lblSubject1.AutoSize = true;
             this.lblSubject1.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.lblSubject1.ForeColor = System.Drawing.Color.White;
@@ -335,9 +327,6 @@
             this.lblSubject1.Size = new System.Drawing.Size(85, 21);
             this.lblSubject1.TabIndex = 1;
             this.lblSubject1.Text = "Subject 1";
-            // 
-            // btnSubject1Submit
-            // 
             this.btnSubject1Submit.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.btnSubject1Submit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnSubject1Submit.FlatAppearance.BorderSize = 0;
@@ -350,10 +339,6 @@
             this.btnSubject1Submit.TabIndex = 3;
             this.btnSubject1Submit.Text = "Submit";
             this.btnSubject1Submit.UseVisualStyleBackColor = false;
-            this.btnSubject1Submit.Click += new System.EventHandler(this.btnSubject1Submit_Click);
-            // 
-            // lblSubject1Status
-            // 
             this.lblSubject1Status.AutoSize = true;
             this.lblSubject1Status.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblSubject1Status.ForeColor = System.Drawing.Color.FromArgb(84, 172, 191);
@@ -362,9 +347,7 @@
             this.lblSubject1Status.Size = new System.Drawing.Size(64, 19);
             this.lblSubject1Status.TabIndex = 2;
             this.lblSubject1Status.Text = "Pending";
-            // 
-            // pnlSubject2
-            // 
+
             this.pnlSubject2.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.pnlSubject2.Controls.Add(this.lblSubject2);
             this.pnlSubject2.Controls.Add(this.btnSubject2Submit);
@@ -373,9 +356,6 @@
             this.pnlSubject2.Name = "pnlSubject2";
             this.pnlSubject2.Size = new System.Drawing.Size(415, 95);
             this.pnlSubject2.TabIndex = 4;
-            // 
-            // lblSubject2
-            // 
             this.lblSubject2.AutoSize = true;
             this.lblSubject2.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.lblSubject2.ForeColor = System.Drawing.Color.White;
@@ -384,9 +364,6 @@
             this.lblSubject2.Size = new System.Drawing.Size(85, 21);
             this.lblSubject2.TabIndex = 1;
             this.lblSubject2.Text = "Subject 2";
-            // 
-            // btnSubject2Submit
-            // 
             this.btnSubject2Submit.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.btnSubject2Submit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnSubject2Submit.FlatAppearance.BorderSize = 0;
@@ -399,10 +376,6 @@
             this.btnSubject2Submit.TabIndex = 3;
             this.btnSubject2Submit.Text = "Submit";
             this.btnSubject2Submit.UseVisualStyleBackColor = false;
-            this.btnSubject2Submit.Click += new System.EventHandler(this.btnSubject2Submit_Click);
-            // 
-            // lblSubject2Status
-            // 
             this.lblSubject2Status.AutoSize = true;
             this.lblSubject2Status.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblSubject2Status.ForeColor = System.Drawing.Color.FromArgb(84, 172, 191);
@@ -411,9 +384,7 @@
             this.lblSubject2Status.Size = new System.Drawing.Size(64, 19);
             this.lblSubject2Status.TabIndex = 2;
             this.lblSubject2Status.Text = "Pending";
-            // 
-            // pnlSubject3
-            // 
+
             this.pnlSubject3.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.pnlSubject3.Controls.Add(this.lblSubject3);
             this.pnlSubject3.Controls.Add(this.btnSubject3Submit);
@@ -422,9 +393,6 @@
             this.pnlSubject3.Name = "pnlSubject3";
             this.pnlSubject3.Size = new System.Drawing.Size(415, 95);
             this.pnlSubject3.TabIndex = 5;
-            // 
-            // lblSubject3
-            // 
             this.lblSubject3.AutoSize = true;
             this.lblSubject3.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.lblSubject3.ForeColor = System.Drawing.Color.White;
@@ -433,9 +401,6 @@
             this.lblSubject3.Size = new System.Drawing.Size(85, 21);
             this.lblSubject3.TabIndex = 1;
             this.lblSubject3.Text = "Subject 3";
-            // 
-            // btnSubject3Submit
-            // 
             this.btnSubject3Submit.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.btnSubject3Submit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnSubject3Submit.FlatAppearance.BorderSize = 0;
@@ -448,10 +413,6 @@
             this.btnSubject3Submit.TabIndex = 3;
             this.btnSubject3Submit.Text = "Submit";
             this.btnSubject3Submit.UseVisualStyleBackColor = false;
-            this.btnSubject3Submit.Click += new System.EventHandler(this.btnSubject3Submit_Click);
-            // 
-            // lblSubject3Status
-            // 
             this.lblSubject3Status.AutoSize = true;
             this.lblSubject3Status.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblSubject3Status.ForeColor = System.Drawing.Color.FromArgb(84, 172, 191);
@@ -460,9 +421,7 @@
             this.lblSubject3Status.Size = new System.Drawing.Size(64, 19);
             this.lblSubject3Status.TabIndex = 2;
             this.lblSubject3Status.Text = "Pending";
-            // 
-            // pnlSubject4
-            // 
+
             this.pnlSubject4.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.pnlSubject4.Controls.Add(this.lblSubject4);
             this.pnlSubject4.Controls.Add(this.btnSubject4Submit);
@@ -471,9 +430,6 @@
             this.pnlSubject4.Name = "pnlSubject4";
             this.pnlSubject4.Size = new System.Drawing.Size(415, 95);
             this.pnlSubject4.TabIndex = 6;
-            // 
-            // lblSubject4
-            // 
             this.lblSubject4.AutoSize = true;
             this.lblSubject4.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.lblSubject4.ForeColor = System.Drawing.Color.White;
@@ -482,9 +438,6 @@
             this.lblSubject4.Size = new System.Drawing.Size(85, 21);
             this.lblSubject4.TabIndex = 1;
             this.lblSubject4.Text = "Subject 4";
-            // 
-            // btnSubject4Submit
-            // 
             this.btnSubject4Submit.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.btnSubject4Submit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnSubject4Submit.FlatAppearance.BorderSize = 0;
@@ -497,10 +450,6 @@
             this.btnSubject4Submit.TabIndex = 3;
             this.btnSubject4Submit.Text = "Submit";
             this.btnSubject4Submit.UseVisualStyleBackColor = false;
-            this.btnSubject4Submit.Click += new System.EventHandler(this.btnSubject4Submit_Click);
-            // 
-            // lblSubject4Status
-            // 
             this.lblSubject4Status.AutoSize = true;
             this.lblSubject4Status.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblSubject4Status.ForeColor = System.Drawing.Color.FromArgb(84, 172, 191);
@@ -509,9 +458,7 @@
             this.lblSubject4Status.Size = new System.Drawing.Size(64, 19);
             this.lblSubject4Status.TabIndex = 2;
             this.lblSubject4Status.Text = "Pending";
-            // 
-            // pnlSubject5
-            // 
+
             this.pnlSubject5.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.pnlSubject5.Controls.Add(this.lblSubject5);
             this.pnlSubject5.Controls.Add(this.btnSubject5Submit);
@@ -520,9 +467,6 @@
             this.pnlSubject5.Name = "pnlSubject5";
             this.pnlSubject5.Size = new System.Drawing.Size(415, 95);
             this.pnlSubject5.TabIndex = 7;
-            // 
-            // lblSubject5
-            // 
             this.lblSubject5.AutoSize = true;
             this.lblSubject5.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.lblSubject5.ForeColor = System.Drawing.Color.White;
@@ -531,9 +475,6 @@
             this.lblSubject5.Size = new System.Drawing.Size(85, 21);
             this.lblSubject5.TabIndex = 1;
             this.lblSubject5.Text = "Subject 5";
-            // 
-            // btnSubject5Submit
-            // 
             this.btnSubject5Submit.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.btnSubject5Submit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnSubject5Submit.FlatAppearance.BorderSize = 0;
@@ -546,10 +487,6 @@
             this.btnSubject5Submit.TabIndex = 3;
             this.btnSubject5Submit.Text = "Submit";
             this.btnSubject5Submit.UseVisualStyleBackColor = false;
-            this.btnSubject5Submit.Click += new System.EventHandler(this.btnSubject5Submit_Click);
-            // 
-            // lblSubject5Status
-            // 
             this.lblSubject5Status.AutoSize = true;
             this.lblSubject5Status.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblSubject5Status.ForeColor = System.Drawing.Color.FromArgb(84, 172, 191);
@@ -558,9 +495,7 @@
             this.lblSubject5Status.Size = new System.Drawing.Size(64, 19);
             this.lblSubject5Status.TabIndex = 2;
             this.lblSubject5Status.Text = "Pending";
-            // 
-            // pnlSubject6
-            // 
+
             this.pnlSubject6.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.pnlSubject6.Controls.Add(this.lblSubject6);
             this.pnlSubject6.Controls.Add(this.btnSubject6Submit);
@@ -569,9 +504,6 @@
             this.pnlSubject6.Name = "pnlSubject6";
             this.pnlSubject6.Size = new System.Drawing.Size(415, 95);
             this.pnlSubject6.TabIndex = 8;
-            // 
-            // lblSubject6
-            // 
             this.lblSubject6.AutoSize = true;
             this.lblSubject6.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.lblSubject6.ForeColor = System.Drawing.Color.White;
@@ -580,9 +512,6 @@
             this.lblSubject6.Size = new System.Drawing.Size(85, 21);
             this.lblSubject6.TabIndex = 1;
             this.lblSubject6.Text = "Subject 6";
-            // 
-            // btnSubject6Submit
-            // 
             this.btnSubject6Submit.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.btnSubject6Submit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnSubject6Submit.FlatAppearance.BorderSize = 0;
@@ -595,10 +524,6 @@
             this.btnSubject6Submit.TabIndex = 3;
             this.btnSubject6Submit.Text = "Submit";
             this.btnSubject6Submit.UseVisualStyleBackColor = false;
-            this.btnSubject6Submit.Click += new System.EventHandler(this.btnSubject6Submit_Click);
-            // 
-            // lblSubject6Status
-            // 
             this.lblSubject6Status.AutoSize = true;
             this.lblSubject6Status.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblSubject6Status.ForeColor = System.Drawing.Color.FromArgb(84, 172, 191);
@@ -652,7 +577,6 @@
             this.progressDepts.Size = new System.Drawing.Size(850, 25);
             this.progressDepts.TabIndex = 2;
 
-            // Department cards
             this.pnlLibrary.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.pnlLibrary.Controls.Add(this.lblLibrary);
             this.pnlLibrary.Controls.Add(this.btnLibrarySubmit);
@@ -882,17 +806,15 @@
             this.lblRecordsStatus.Text = "Pending";
 
             // ===================================================
-            // CERTIFICATE PANEL
+            // CERTIFICATE PANEL (SIMPLIFIED)
             // ===================================================
             this.pnlCertificate.BackColor = System.Drawing.Color.Transparent;
             this.pnlCertificate.Controls.Add(this.lblCertTitle);
             this.pnlCertificate.Controls.Add(this.lblCertStudentID);
             this.pnlCertificate.Controls.Add(this.lblCertProgram);
             this.pnlCertificate.Controls.Add(this.lblCertDate);
-            this.pnlCertificate.Controls.Add(this.lblCertSubjectsTitle);
-            this.pnlCertificate.Controls.Add(this.lblCertSubjectsList);
-            this.pnlCertificate.Controls.Add(this.lblCertDeptsTitle);
-            this.pnlCertificate.Controls.Add(this.lblCertDeptsList);
+            this.pnlCertificate.Controls.Add(this.lblCertSubjectsCheck);
+            this.pnlCertificate.Controls.Add(this.lblCertDeptsCheck);
             this.pnlCertificate.Controls.Add(this.btnDownloadCert);
             this.pnlCertificate.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlCertificate.Location = new System.Drawing.Point(0, 70);
@@ -906,7 +828,7 @@
             this.lblCertTitle.AutoSize = false;
             this.lblCertTitle.Font = new System.Drawing.Font("Segoe UI", 22F, System.Drawing.FontStyle.Bold);
             this.lblCertTitle.ForeColor = System.Drawing.Color.White;
-            this.lblCertTitle.Location = new System.Drawing.Point(40, 30);
+            this.lblCertTitle.Location = new System.Drawing.Point(40, 50);
             this.lblCertTitle.Name = "lblCertTitle";
             this.lblCertTitle.Size = new System.Drawing.Size(820, 40);
             this.lblCertTitle.Text = "CLEARANCE COMPLETION CERTIFICATE";
@@ -916,7 +838,7 @@
             this.lblCertStudentID.AutoSize = false;
             this.lblCertStudentID.Font = new System.Drawing.Font("Segoe UI", 14F);
             this.lblCertStudentID.ForeColor = System.Drawing.Color.White;
-            this.lblCertStudentID.Location = new System.Drawing.Point(40, 90);
+            this.lblCertStudentID.Location = new System.Drawing.Point(40, 110);
             this.lblCertStudentID.Name = "lblCertStudentID";
             this.lblCertStudentID.Size = new System.Drawing.Size(820, 30);
             this.lblCertStudentID.Text = "Student ID: STUD001";
@@ -926,7 +848,7 @@
             this.lblCertProgram.AutoSize = false;
             this.lblCertProgram.Font = new System.Drawing.Font("Segoe UI", 14F);
             this.lblCertProgram.ForeColor = System.Drawing.Color.White;
-            this.lblCertProgram.Location = new System.Drawing.Point(40, 120);
+            this.lblCertProgram.Location = new System.Drawing.Point(40, 150);
             this.lblCertProgram.Name = "lblCertProgram";
             this.lblCertProgram.Size = new System.Drawing.Size(820, 30);
             this.lblCertProgram.Text = "Program: BS Information Technology";
@@ -936,60 +858,42 @@
             this.lblCertDate.AutoSize = false;
             this.lblCertDate.Font = new System.Drawing.Font("Segoe UI", 12F);
             this.lblCertDate.ForeColor = System.Drawing.Color.FromArgb(185, 187, 190);
-            this.lblCertDate.Location = new System.Drawing.Point(40, 160);
+            this.lblCertDate.Location = new System.Drawing.Point(40, 190);
             this.lblCertDate.Name = "lblCertDate";
             this.lblCertDate.Size = new System.Drawing.Size(820, 25);
             this.lblCertDate.Text = "Completed on: January 1, 2025";
             this.lblCertDate.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
 
-            // lblCertSubjectsTitle
-            this.lblCertSubjectsTitle.AutoSize = false;
-            this.lblCertSubjectsTitle.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
-            this.lblCertSubjectsTitle.ForeColor = System.Drawing.Color.FromArgb(84, 172, 191);
-            this.lblCertSubjectsTitle.Location = new System.Drawing.Point(40, 210);
-            this.lblCertSubjectsTitle.Name = "lblCertSubjectsTitle";
-            this.lblCertSubjectsTitle.Size = new System.Drawing.Size(820, 25);
-            this.lblCertSubjectsTitle.Text = "Subjects Cleared";
-            this.lblCertSubjectsTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // lblCertSubjectsCheck
+            this.lblCertSubjectsCheck.AutoSize = false;
+            this.lblCertSubjectsCheck.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Bold);
+            this.lblCertSubjectsCheck.ForeColor = System.Drawing.Color.FromArgb(84, 172, 191);
+            this.lblCertSubjectsCheck.Location = new System.Drawing.Point(40, 250);
+            this.lblCertSubjectsCheck.Name = "lblCertSubjectsCheck";
+            this.lblCertSubjectsCheck.Size = new System.Drawing.Size(820, 35);
+            this.lblCertSubjectsCheck.Text = "✓ Subjects Cleared";
+            this.lblCertSubjectsCheck.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
 
-            // lblCertSubjectsList
-            this.lblCertSubjectsList.AutoSize = false;
-            this.lblCertSubjectsList.Font = new System.Drawing.Font("Segoe UI", 11F);
-            this.lblCertSubjectsList.ForeColor = System.Drawing.Color.White;
-            this.lblCertSubjectsList.Location = new System.Drawing.Point(40, 240);
-            this.lblCertSubjectsList.Name = "lblCertSubjectsList";
-            this.lblCertSubjectsList.Size = new System.Drawing.Size(820, 100);
-            this.lblCertSubjectsList.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-
-            // lblCertDeptsTitle
-            this.lblCertDeptsTitle.AutoSize = false;
-            this.lblCertDeptsTitle.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
-            this.lblCertDeptsTitle.ForeColor = System.Drawing.Color.FromArgb(84, 172, 191);
-            this.lblCertDeptsTitle.Location = new System.Drawing.Point(40, 350);
-            this.lblCertDeptsTitle.Name = "lblCertDeptsTitle";
-            this.lblCertDeptsTitle.Size = new System.Drawing.Size(820, 25);
-            this.lblCertDeptsTitle.Text = "Departments Cleared";
-            this.lblCertDeptsTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-
-            // lblCertDeptsList
-            this.lblCertDeptsList.AutoSize = false;
-            this.lblCertDeptsList.Font = new System.Drawing.Font("Segoe UI", 11F);
-            this.lblCertDeptsList.ForeColor = System.Drawing.Color.White;
-            this.lblCertDeptsList.Location = new System.Drawing.Point(40, 380);
-            this.lblCertDeptsList.Name = "lblCertDeptsList";
-            this.lblCertDeptsList.Size = new System.Drawing.Size(820, 80);
-            this.lblCertDeptsList.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // lblCertDeptsCheck
+            this.lblCertDeptsCheck.AutoSize = false;
+            this.lblCertDeptsCheck.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Bold);
+            this.lblCertDeptsCheck.ForeColor = System.Drawing.Color.FromArgb(84, 172, 191);
+            this.lblCertDeptsCheck.Location = new System.Drawing.Point(40, 300);
+            this.lblCertDeptsCheck.Name = "lblCertDeptsCheck";
+            this.lblCertDeptsCheck.Size = new System.Drawing.Size(820, 35);
+            this.lblCertDeptsCheck.Text = "✓ Departments Cleared";
+            this.lblCertDeptsCheck.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
 
             // btnDownloadCert
             this.btnDownloadCert.BackColor = System.Drawing.Color.FromArgb(38, 101, 140);
             this.btnDownloadCert.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnDownloadCert.FlatAppearance.BorderSize = 0;
             this.btnDownloadCert.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnDownloadCert.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.btnDownloadCert.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
             this.btnDownloadCert.ForeColor = System.Drawing.Color.White;
-            this.btnDownloadCert.Location = new System.Drawing.Point(320, 470);
+            this.btnDownloadCert.Location = new System.Drawing.Point(280, 390);
             this.btnDownloadCert.Name = "btnDownloadCert";
-            this.btnDownloadCert.Size = new System.Drawing.Size(260, 40);
+            this.btnDownloadCert.Size = new System.Drawing.Size(340, 50);
             this.btnDownloadCert.TabIndex = 0;
             this.btnDownloadCert.Text = "Download Certificate (PNG)";
             this.btnDownloadCert.UseVisualStyleBackColor = false;

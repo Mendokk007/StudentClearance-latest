@@ -72,11 +72,13 @@
             this.lblRegister.Cursor = System.Windows.Forms.Cursors.Hand;
             this.lblRegister.Click += new System.EventHandler(this.lblRegister_Click);
 
-            this.btnDarkMode.Location = new System.Drawing.Point(265, 580);
-            this.btnDarkMode.Size = new System.Drawing.Size(100, 25);
+            this.btnDarkMode.Location = new System.Drawing.Point(320, 575);
+            this.btnDarkMode.Size = new System.Drawing.Size(50, 35);
             this.btnDarkMode.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnDarkMode.FlatAppearance.BorderSize = 0;
             this.btnDarkMode.BackColor = System.Drawing.Color.Transparent;
+            this.btnDarkMode.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.btnDarkMode.Text = "🌙";
             this.btnDarkMode.Click += new System.EventHandler(this.btnDarkMode_Click);
 
             this.btnClose.Location = new System.Drawing.Point(340, 5);

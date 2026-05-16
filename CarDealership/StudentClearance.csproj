@@ -15,7 +15,7 @@
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
     <IsWebBootstrapper>false</IsWebBootstrapper>
-    <PublishUrl>uget\</PublishUrl>
+    <PublishUrl>D:\Games\app\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
     <UpdateEnabled>false</UpdateEnabled>
@@ -27,7 +27,7 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ProductName>Student Clearance System</ProductName>
     <PublisherName>github%40Mendokk007</PublisherName>
-    <ApplicationRevision>4</ApplicationRevision>
+    <ApplicationRevision>5</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
@@ -186,6 +186,12 @@
     </Compile>
     <Compile Include="AdminFormSubjects.Designer.cs">
       <DependentUpon>AdminFormSubjects.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SuperAdminForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SuperAdminForm.Designer.cs">
+      <DependentUpon>SuperAdminForm.cs</DependentUpon>
     </Compile>
     <Compile Include="LunaProgressBar.cs">
       <SubType>Component</SubType>

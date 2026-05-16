@@ -181,8 +181,8 @@ namespace CarDealership
             txtUsername.BackColor = txtPassword.BackColor = solidBg;
             txtUsername.ForeColor = txtPassword.ForeColor = isDarkMode ? Color.White : Color.Black;
             lblRegister.ForeColor = isDarkMode ? lunaCyan : lunaTeal;
-            btnDarkMode.ForeColor = isDarkMode ? lunaLight : lunaCyan;
-            btnDarkMode.Text = isDarkMode ? "LIGHT MODE" : "DARK MODE";
+            btnDarkMode.ForeColor = isDarkMode ? Color.White : lunaDarkest;
+            btnDarkMode.Text = isDarkMode ? "🌙" : "☀️";
             btnLogin.BackColor = lunaTeal;
             btnLogin.ForeColor = Color.White;
             pnlMain.Invalidate();
@@ -194,8 +194,8 @@ namespace CarDealership
             lblRegister.MouseLeave += (s, e) => lblRegister.ForeColor = isDarkMode ? lunaCyan : lunaTeal;
             btnDarkMode.FlatAppearance.MouseOverBackColor = Color.Transparent;
             btnDarkMode.FlatAppearance.MouseDownBackColor = Color.Transparent;
-            btnDarkMode.MouseEnter += (s, e) => btnDarkMode.ForeColor = isDarkMode ? Color.White : Color.Black;
-            btnDarkMode.MouseLeave += (s, e) => btnDarkMode.ForeColor = isDarkMode ? lunaLight : lunaCyan;
+            btnDarkMode.MouseEnter += (s, e) => btnDarkMode.ForeColor = lunaCyan;
+            btnDarkMode.MouseLeave += (s, e) => btnDarkMode.ForeColor = isDarkMode ? Color.White : lunaDarkest;
         }
 
         private void pnlMain_Paint(object sender, PaintEventArgs e)
@@ -272,6 +272,10 @@ namespace CarDealership
                                 else if (role == "Instructor")
                                 {
                                     _appContext?.OpenAdminFormSubjects(_connectionString, username, assignedSubject);
+                                }
+                                else if (role == "SuperAdmin")
+                                {
+                                    _appContext?.OpenSuperAdminForm(_connectionString, username);
                                 }
                             }
                             else

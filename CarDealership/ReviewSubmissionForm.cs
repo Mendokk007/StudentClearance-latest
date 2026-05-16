@@ -15,7 +15,7 @@ namespace CarDealership
         private readonly int _submissionId;
         private readonly string _studentName;
         private readonly string _department;
-        private readonly byte[] _imageData;
+        private readonly byte[] _fileData;
         private readonly string _reviewer;
 
         // Luna Theme (always dark)
@@ -42,7 +42,7 @@ namespace CarDealership
         }
 
         public ReviewSubmissionForm(string connectionString, int submissionId,
-            string studentName, string department, byte[] imageData, string reviewer)
+            string studentName, string department, byte[] fileData, string reviewer)
         {
             this.DoubleBuffered = true;
             InitializeComponent();
@@ -50,7 +50,7 @@ namespace CarDealership
             _submissionId = submissionId;
             _studentName = studentName;
             _department = department;
-            _imageData = imageData;
+            _fileData = fileData;
             _reviewer = reviewer;
 
             lblStudent.Text = $"Student: {studentName}";
@@ -62,7 +62,7 @@ namespace CarDealership
             MakeDraggable(pnlTopBar);
             MakeDraggable(lblTitle);
 
-            LoadImage();
+            LoadFile();
         }
 
         private void MakeDraggable(Control control)
@@ -85,32 +85,24 @@ namespace CarDealership
 
             try
             {
-                // Form background
                 this.BackColor = lunaDarkest;
-
-                // Top bar
                 pnlTopBar.BackColor = Color.FromArgb(1, 20, 50);
 
-                // Colors
                 Color textColor = Color.White;
                 Color accentColor = lunaCyan;
                 Color inputBg = Color.FromArgb(1, 20, 50);
 
-                // Labels
                 lblTitle.ForeColor = textColor;
                 lblStudent.ForeColor = textColor;
                 lblDepartment.ForeColor = accentColor;
                 lblRejectionReason.ForeColor = Color.FromArgb(185, 187, 190);
 
-                // PictureBox
                 pbSubmission.BackColor = Color.FromArgb(1, 20, 50);
 
-                // TextBox
                 txtRejectionReason.BackColor = inputBg;
                 txtRejectionReason.ForeColor = textColor;
                 txtRejectionReason.BorderStyle = BorderStyle.FixedSingle;
 
-                // Buttons
                 btnApprove.BackColor = lunaTeal;
                 btnApprove.ForeColor = Color.White;
                 btnApprove.FlatStyle = FlatStyle.Flat;
@@ -165,13 +157,13 @@ namespace CarDealership
             }
         }
 
-        private void LoadImage()
+        private void LoadFile()
         {
             try
             {
-                if (_imageData != null && _imageData.Length > 0)
+                if (_fileData != null && _fileData.Length > 0)
                 {
-                    using (var ms = new MemoryStream(_imageData))
+                    using (var ms = new MemoryStream(_fileData))
                     {
                         try
                         {
@@ -184,13 +176,13 @@ namespace CarDealership
                         }
                         catch (Exception)
                         {
-                            CreatePlaceholderImage("Error Loading Image");
+                            CreatePlaceholderImage("Error Loading File");
                         }
                     }
                 }
                 else
                 {
-                    CreatePlaceholderImage("No Image Submitted");
+                    CreatePlaceholderImage("No File Submitted");
                 }
             }
             catch (Exception ex)

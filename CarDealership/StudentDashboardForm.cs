@@ -22,6 +22,8 @@ namespace CarDealership
         private readonly Dictionary<string, bool> _subjectStatus;
         private Dictionary<string, Button> _subjectButtons;
         private Dictionary<string, Label> _subjectStatusLabels;
+        private List<Panel> _subjectPanels;
+        private List<Label> _subjectNameLabels;
 
         // Department data (from existing HomeForm)
         private readonly Dictionary<string, bool> _deptStatus;
@@ -111,6 +113,8 @@ namespace CarDealership
             AddThemeToggleButton();
             ApplyRoundedCorners(this, 30);
 
+            pnlSubjects.AutoScroll = true;
+
             _connectionString = connectionString;
             _username = username;
 
@@ -119,6 +123,8 @@ namespace CarDealership
             _subjectStatus = new Dictionary<string, bool>();
             _subjectButtons = new Dictionary<string, Button>();
             _subjectStatusLabels = new Dictionary<string, Label>();
+            _subjectPanels = new List<Panel>();
+            _subjectNameLabels = new List<Label>();
 
             // Initialize department data
             _deptStatus = new Dictionary<string, bool>
@@ -135,8 +141,8 @@ namespace CarDealership
 
             _openFileDialog = new OpenFileDialog
             {
-                Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp|All Files|*.*",
-                Title = "Select an image for submission"
+                Filter = "All Supported Files|*.jpg;*.jpeg;*.png;*.bmp;*.pdf|Image Files|*.jpg;*.jpeg;*.png;*.bmp|PDF Files|*.pdf|All Files|*.*",
+                Title = "Select a file for submission"
             };
 
             notifyIcon1 = new NotifyIcon
@@ -162,12 +168,12 @@ namespace CarDealership
             SetupNotificationPolling();
 
             this.Shown += (s, e) => {
-                // Load status immediately — no delay
                 LoadSubjectStatusFromDB();
                 LoadDeptStatusFromDB();
                 UpdateNotificationBadge();
                 UpdateStep2Button();
                 UpdateStep3Button();
+                SetDefaultPanel();
             };
 
             btnStep1.Paint += BtnStep1_Paint;
@@ -224,15 +230,96 @@ namespace CarDealership
 
         private void MapSubjectControls()
         {
-            Button[] buttons = { btnSubject1Submit, btnSubject2Submit, btnSubject3Submit, btnSubject4Submit, btnSubject5Submit, btnSubject6Submit };
-            Label[] nameLabels = { lblSubject1, lblSubject2, lblSubject3, lblSubject4, lblSubject5, lblSubject6 };
-            Label[] statusLabels = { lblSubject1Status, lblSubject2Status, lblSubject3Status, lblSubject4Status, lblSubject5Status, lblSubject6Status };
-
-            for (int i = 0; i < _subjects.Count && i < 6; i++)
+            // Clear old dynamic panels
+            foreach (var panel in _subjectPanels)
             {
-                _subjectButtons[_subjects[i]] = buttons[i];
-                _subjectStatusLabels[_subjects[i]] = statusLabels[i];
-                nameLabels[i].Text = _subjects[i];
+                pnlSubjects.Controls.Remove(panel);
+                panel.Dispose();
+            }
+            _subjectPanels.Clear();
+            _subjectNameLabels.Clear();
+            _subjectButtons.Clear();
+            _subjectStatusLabels.Clear();
+
+            // Hide the 6 static panels
+            pnlSubject1.Visible = false;
+            pnlSubject2.Visible = false;
+            pnlSubject3.Visible = false;
+            pnlSubject4.Visible = false;
+            pnlSubject5.Visible = false;
+            pnlSubject6.Visible = false;
+
+            // Create dynamic panels for each subject
+            int y = 120;
+            for (int i = 0; i < _subjects.Count; i++)
+            {
+                string subject = _subjects[i];
+                int column = i % 2;
+                int x = (column == 0) ? 25 : 460;
+
+                if (column == 0 && i > 0) y += 115;
+
+                // Create panel
+                var panel = new Panel
+                {
+                    BackColor = Color.FromArgb(38, 101, 140),
+                    Location = new Point(x, y),
+                    Size = new Size(415, 95),
+                    Name = "pnlDynamicSubject" + i
+                };
+
+                // Subject name label
+                var lblName = new Label
+                {
+                    Text = subject,
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                    ForeColor = Color.White,
+                    Location = new Point(20, 15)
+                };
+
+                // Submit button
+                var btnSubmit = new Button
+                {
+                    Text = "Submit",
+                    BackColor = Color.FromArgb(38, 101, 140),
+                    Cursor = Cursors.Hand,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                    ForeColor = Color.White,
+                    Location = new Point(290, 28),
+                    Size = new Size(110, 40),
+                    Name = "btnDynamicSubmit" + i
+                };
+                btnSubmit.FlatAppearance.BorderSize = 0;
+
+                // Status label
+                var lblStatus = new Label
+                {
+                    Text = "Pending",
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(84, 172, 191),
+                    Location = new Point(20, 45)
+                };
+
+                // Wire up click event
+                string capturedSubject = subject;
+                btnSubmit.Click += (s, e) => HandleSubjectSubmission(capturedSubject, btnSubmit, lblStatus);
+
+                // Add controls to panel
+                panel.Controls.Add(lblName);
+                panel.Controls.Add(btnSubmit);
+                panel.Controls.Add(lblStatus);
+
+                // Add panel to subjects panel
+                pnlSubjects.Controls.Add(panel);
+
+                // Store references
+                _subjectPanels.Add(panel);
+                _subjectNameLabels.Add(lblName);
+                _subjectButtons[subject] = btnSubmit;
+                _subjectStatusLabels[subject] = lblStatus;
             }
         }
 
@@ -457,20 +544,18 @@ namespace CarDealership
                 progressDepts.ForeColor = lunaTeal;
                 progressDepts.Height = 25;
 
-                // Certificate panel theme
+                // Certificate panel theme (SIMPLIFIED)
                 lblCertTitle.ForeColor = textColor;
                 lblCertStudentID.ForeColor = textColor;
                 lblCertProgram.ForeColor = textColor;
                 lblCertDate.ForeColor = isDarkMode ? Color.FromArgb(185, 187, 190) : Color.FromArgb(100, 100, 100);
-                lblCertSubjectsTitle.ForeColor = lunaCyan;
-                lblCertDeptsTitle.ForeColor = lunaCyan;
-                lblCertSubjectsList.ForeColor = textColor;
-                lblCertDeptsList.ForeColor = textColor;
+                lblCertSubjectsCheck.ForeColor = lunaCyan;
+                lblCertDeptsCheck.ForeColor = lunaCyan;
                 btnDownloadCert.BackColor = lunaTeal;
                 btnDownloadCert.ForeColor = Color.White;
                 btnDownloadCert.FlatStyle = FlatStyle.Flat;
                 btnDownloadCert.FlatAppearance.BorderSize = 0;
-                ApplyRoundedCornersToButton(btnDownloadCert, 15);
+                ApplyRoundedCornersToButton(btnDownloadCert, 20);
 
                 if (btnThemeToggle != null)
                 {
@@ -858,7 +943,7 @@ namespace CarDealership
             btnViewNotifications.ForeColor = isDarkMode ? Color.White : lunaDarkest;
             btnViewNotifications.FlatStyle = FlatStyle.Flat;
             btnViewNotifications.FlatAppearance.BorderSize = 0;
-            btnViewNotifications.FlatAppearance.MouseOverBackColor = Color.FromArgb(64, 68, 75);
+            btnViewNotifications.FlatAppearance.MouseOverBackColor = lunaDarkest;
             btnViewNotifications.Size = new Size(45, 40);
             btnViewNotifications.Location = new Point(735, 15);
             btnViewNotifications.Cursor = Cursors.Hand;
@@ -1275,7 +1360,6 @@ namespace CarDealership
             lblCertStudentID.Text = "Student ID: " + _username;
             lblCertDate.Text = "Completed on: " + DateTime.Now.ToString("MMMM dd, yyyy");
 
-            // Get program from database
             string program = "";
             try
             {
@@ -1293,24 +1377,10 @@ namespace CarDealership
             catch { program = "N/A"; }
 
             lblCertProgram.Text = "Program: " + program;
+            lblCertSubjectsCheck.Text = "✓ Subjects Cleared";
+            lblCertDeptsCheck.Text = "✓ Departments Cleared";
 
-            // Build subjects list
-            string subjectsList = "";
-            foreach (var subject in _subjects)
-            {
-                subjectsList += "✓  " + subject + "          ";
-            }
-            lblCertSubjectsList.Text = subjectsList.Trim();
-
-            // Build departments list
-            string deptsList = "";
-            foreach (var dept in new[] { "Library", "SAO", "Cashier", "Accounting", "Dean's Office", "Records" })
-            {
-                deptsList += "✓  " + dept + "          ";
-            }
-            lblCertDeptsList.Text = deptsList.Trim();
-
-            ApplyTheme(); // Refresh colors
+            ApplyTheme();
         }
 
         // =============================================
@@ -1613,6 +1683,56 @@ namespace CarDealership
             btnStep3.Invalidate();
         }
 
+        private void SetDefaultPanel()
+        {
+            if (this.IsDisposed) return;
+
+            // Check if all subjects AND all departments are approved → go to Certificate
+            int approvedSubjects = 0;
+            foreach (var subject in _subjects)
+            {
+                var controls = GetSubjectControls(subject);
+                if (controls.statusLabel != null && !controls.statusLabel.IsDisposed && controls.statusLabel.Text == "Approved")
+                    approvedSubjects++;
+            }
+
+            int approvedDepts = 0;
+            foreach (var dept in _deptStatus.Keys)
+            {
+                var controls = GetDeptControls(dept);
+                if (controls.statusLabel != null && !controls.statusLabel.IsDisposed && controls.statusLabel.Text == "Approved")
+                    approvedDepts++;
+            }
+
+            if (approvedSubjects >= _subjects.Count && approvedDepts >= 6 && _subjects.Count > 0)
+            {
+                // All done — show Certificate
+                pnlSubjects.Visible = false;
+                pnlDepartments.Visible = false;
+                pnlCertificate.Visible = true;
+                pnlCertificate.BringToFront();
+                LoadCertificateData();
+            }
+            else if (approvedSubjects >= _subjects.Count && _subjects.Count > 0)
+            {
+                // Subjects done — show Departments
+                pnlSubjects.Visible = false;
+                pnlDepartments.Visible = true;
+                pnlCertificate.Visible = false;
+                pnlDepartments.BringToFront();
+            }
+            else
+            {
+                // Default — show Subjects
+                pnlSubjects.Visible = true;
+                pnlDepartments.Visible = false;
+                pnlCertificate.Visible = false;
+                pnlSubjects.BringToFront();
+            }
+
+            ApplyTheme();
+        }
+
         private async Task FadeSwitchPanels(Panel showPanel, Panel hidePanel)
         {
             if (_isSliding) return;
@@ -1703,22 +1823,35 @@ namespace CarDealership
                 MessageBox.Show($"{subject} clearance has already been approved.", "Already Approved", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
-            var result = MessageBox.Show($"Do you want to submit an image for {subject} clearance?", "Confirm Submission", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            var result = MessageBox.Show($"Do you want to submit a file for {subject} clearance?", "Confirm Submission", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.Yes && _openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
-                    byte[] imageData;
-                    using (var fs = new FileStream(_openFileDialog.FileName, FileMode.Open, FileAccess.Read))
+                    byte[] fileData;
+                    string fileName = Path.GetFileName(_openFileDialog.FileName);
+                    string fileType = Path.GetExtension(_openFileDialog.FileName).ToLower().Replace(".", "");
+
+                    // Read file as bytes (works for both images and PDFs)
+                    fileData = File.ReadAllBytes(_openFileDialog.FileName);
+
+                    // Validate image if it's an image file
+                    if (fileType != "pdf")
                     {
-                        using (var testImage = Image.FromStream(fs))
+                        try
                         {
-                            fs.Position = 0;
-                            imageData = new byte[fs.Length];
-                            fs.Read(imageData, 0, imageData.Length);
+                            using (var ms = new MemoryStream(fileData))
+                            {
+                                Image.FromStream(ms);
+                            }
+                        }
+                        catch
+                        {
+                            MessageBox.Show("The selected file is not a valid image.", "Invalid File", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
                         }
                     }
-                    string fileName = Path.GetFileName(_openFileDialog.FileName);
+
                     using (var conn = new SqlConnection(_connectionString))
                     {
                         conn.Open();
@@ -1727,8 +1860,9 @@ namespace CarDealership
                             cmd.CommandType = CommandType.StoredProcedure;
                             cmd.Parameters.AddWithValue("@StudentUsername", _username);
                             cmd.Parameters.AddWithValue("@SubjectName", subject);
-                            cmd.Parameters.AddWithValue("@ImageData", imageData);
-                            cmd.Parameters.AddWithValue("@ImageFileName", fileName);
+                            cmd.Parameters.AddWithValue("@FileData", fileData);
+                            cmd.Parameters.AddWithValue("@FileName", fileName);
+                            cmd.Parameters.AddWithValue("@FileType", fileType);
                             cmd.ExecuteNonQuery();
                         }
                     }
@@ -1751,23 +1885,9 @@ namespace CarDealership
 
                     MessageBox.Show($"{subject} clearance submitted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-                catch (ArgumentException) { MessageBox.Show("The selected file is not a valid image.", "Invalid Image", MessageBoxButtons.OK, MessageBoxIcon.Error); }
                 catch (Exception ex) { MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             }
         }
-
-        private void btnSubject1Submit_Click(object sender, EventArgs e)
-        { if (_subjects.Count > 0) HandleSubjectSubmission(_subjects[0], btnSubject1Submit, lblSubject1Status); }
-        private void btnSubject2Submit_Click(object sender, EventArgs e)
-        { if (_subjects.Count > 1) HandleSubjectSubmission(_subjects[1], btnSubject2Submit, lblSubject2Status); }
-        private void btnSubject3Submit_Click(object sender, EventArgs e)
-        { if (_subjects.Count > 2) HandleSubjectSubmission(_subjects[2], btnSubject3Submit, lblSubject3Status); }
-        private void btnSubject4Submit_Click(object sender, EventArgs e)
-        { if (_subjects.Count > 3) HandleSubjectSubmission(_subjects[3], btnSubject4Submit, lblSubject4Status); }
-        private void btnSubject5Submit_Click(object sender, EventArgs e)
-        { if (_subjects.Count > 4) HandleSubjectSubmission(_subjects[4], btnSubject5Submit, lblSubject5Status); }
-        private void btnSubject6Submit_Click(object sender, EventArgs e)
-        { if (_subjects.Count > 5) HandleSubjectSubmission(_subjects[5], btnSubject6Submit, lblSubject6Status); }
 
         // =============================================
         // DEPARTMENT SUBMISSION HANDLERS
@@ -1779,22 +1899,35 @@ namespace CarDealership
                 MessageBox.Show($"{department} clearance has already been approved.", "Already Approved", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
-            var result = MessageBox.Show($"Do you want to submit an image for {department} clearance?", "Confirm Submission", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            var result = MessageBox.Show($"Do you want to submit a file for {department} clearance?", "Confirm Submission", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.Yes && _openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
-                    byte[] imageData;
-                    using (var fs = new FileStream(_openFileDialog.FileName, FileMode.Open, FileAccess.Read))
+                    byte[] fileData;
+                    string fileName = Path.GetFileName(_openFileDialog.FileName);
+                    string fileType = Path.GetExtension(_openFileDialog.FileName).ToLower().Replace(".", "");
+
+                    // Read file as bytes (works for both images and PDFs)
+                    fileData = File.ReadAllBytes(_openFileDialog.FileName);
+
+                    // Validate image if it's an image file
+                    if (fileType != "pdf")
                     {
-                        using (var testImage = Image.FromStream(fs))
+                        try
                         {
-                            fs.Position = 0;
-                            imageData = new byte[fs.Length];
-                            fs.Read(imageData, 0, imageData.Length);
+                            using (var ms = new MemoryStream(fileData))
+                            {
+                                Image.FromStream(ms);
+                            }
+                        }
+                        catch
+                        {
+                            MessageBox.Show("The selected file is not a valid image.", "Invalid File", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
                         }
                     }
-                    string fileName = Path.GetFileName(_openFileDialog.FileName);
+
                     using (var conn = new SqlConnection(_connectionString))
                     {
                         conn.Open();
@@ -1803,8 +1936,9 @@ namespace CarDealership
                             cmd.CommandType = CommandType.StoredProcedure;
                             cmd.Parameters.AddWithValue("@StudentUsername", _username);
                             cmd.Parameters.AddWithValue("@DepartmentName", department);
-                            cmd.Parameters.AddWithValue("@ImageData", imageData);
-                            cmd.Parameters.AddWithValue("@ImageFileName", fileName);
+                            cmd.Parameters.AddWithValue("@FileData", fileData);
+                            cmd.Parameters.AddWithValue("@FileName", fileName);
+                            cmd.Parameters.AddWithValue("@FileType", fileType);
                             cmd.ExecuteNonQuery();
                         }
                     }
@@ -1817,7 +1951,6 @@ namespace CarDealership
                     ApplyRoundedCornersToButton(submitButton, 20);
                     MessageBox.Show($"{department} clearance submitted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-                catch (ArgumentException) { MessageBox.Show("The selected file is not a valid image.", "Invalid Image", MessageBoxButtons.OK, MessageBoxIcon.Error); }
                 catch (Exception ex) { MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             }
         }

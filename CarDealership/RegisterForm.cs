@@ -68,6 +68,7 @@ namespace CarDealership
             txtRegUsername.ReadOnly = true;
             txtRegUsername.TabStop = false;
             LoadPreviewStudentID();
+            LoadPrograms(); // Load programs dynamically from database
 
             this.ResumeLayout(false);
             this.Load += RegisterForm_Load;
@@ -75,6 +76,50 @@ namespace CarDealership
             this.FormClosed += (s, e) => DisposeCachedResources();
         }
 
+        // =============================================
+        // PROGRAM LOADING (DYNAMIC FROM DATABASE)
+        // =============================================
+        private void LoadPrograms()
+        {
+            try
+            {
+                cboProgram.Items.Clear();
+                cboProgram.Items.Add("Select Program...");
+
+                using (var conn = new SqlConnection(_connectionString))
+                {
+                    conn.Open();
+                    string query = "SELECT ProgramCode FROM Programs ORDER BY ProgramCode";
+                    using (var cmd = new SqlCommand(query, conn))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            cboProgram.Items.Add(reader["ProgramCode"].ToString());
+                        }
+                    }
+                }
+
+                cboProgram.SelectedIndex = 0; // Default to "Select Program..."
+            }
+            catch (Exception ex)
+            {
+                // Fallback to hardcoded list if database fails
+                cboProgram.Items.Clear();
+                cboProgram.Items.Add("Select Program...");
+                cboProgram.Items.Add("BSIT");
+                cboProgram.Items.Add("BSCS");
+                cboProgram.Items.Add("BSBA");
+                cboProgram.Items.Add("BSED");
+                cboProgram.Items.Add("BSHM");
+                cboProgram.SelectedIndex = 0;
+                Console.WriteLine("Error loading programs: " + ex.Message);
+            }
+        }
+
+        // =============================================
+        // STUDENT ID
+        // =============================================
         private void LoadPreviewStudentID()
         {
             try
@@ -118,6 +163,9 @@ namespace CarDealership
             }
         }
 
+        // =============================================
+        // UI SETUP
+        // =============================================
         private void SetupDefocusHandlers()
         {
             this.MouseClick += (s, e) => DefocusAll();
@@ -180,6 +228,9 @@ namespace CarDealership
             isSliding = false;
         }
 
+        // =============================================
+        // THEME
+        // =============================================
         private void InitCachedResources()
         {
             brushPrimary = new SolidBrush(isDarkMode ? Color.White : lunaDarkest);
@@ -215,8 +266,8 @@ namespace CarDealership
             lblBackToLogin.ForeColor = isDarkMode ? lunaCyan : lunaTeal;
             btnRegister.BackColor = lunaTeal;
             btnRegister.ForeColor = Color.White;
-            btnDarkMode.ForeColor = isDarkMode ? lunaLight : lunaCyan;
-            btnDarkMode.Text = isDarkMode ? "LIGHT MODE" : "DARK MODE";
+            btnDarkMode.ForeColor = isDarkMode ? Color.White : lunaDarkest;
+            btnDarkMode.Text = isDarkMode ? "🌙" : "☀️";
             btnClose.ForeColor = isDarkMode ? Color.White : lunaDarkest;
             pnlMain.Invalidate();
         }
@@ -227,10 +278,13 @@ namespace CarDealership
             lblBackToLogin.MouseLeave += (s, e) => lblBackToLogin.ForeColor = isDarkMode ? lunaCyan : lunaTeal;
             btnDarkMode.FlatAppearance.MouseOverBackColor = Color.Transparent;
             btnDarkMode.FlatAppearance.MouseDownBackColor = Color.Transparent;
-            btnDarkMode.MouseEnter += (s, e) => btnDarkMode.ForeColor = isDarkMode ? Color.White : Color.Black;
-            btnDarkMode.MouseLeave += (s, e) => btnDarkMode.ForeColor = isDarkMode ? lunaLight : lunaCyan;
+            btnDarkMode.MouseEnter += (s, e) => btnDarkMode.ForeColor = lunaCyan;
+            btnDarkMode.MouseLeave += (s, e) => btnDarkMode.ForeColor = isDarkMode ? Color.White : lunaDarkest;
         }
 
+        // =============================================
+        // PAINT
+        // =============================================
         private void pnlMain_Paint(object sender, PaintEventArgs e)
         {
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -253,6 +307,9 @@ namespace CarDealership
             }
         }
 
+        // =============================================
+        // REGISTRATION
+        // =============================================
         private void btnRegister_Click(object sender, EventArgs e)
         {
             string password = txtRegPassword.Text.Trim();
@@ -324,6 +381,9 @@ namespace CarDealership
             SendMessage(txtRegPassword.Handle, 0x1501, 0, "Password");
         }
 
+        // =============================================
+        // NAVIGATION
+        // =============================================
         private async void lblBackToLogin_Click(object sender, EventArgs e)
         {
             await SlidePanelOut();
@@ -361,6 +421,9 @@ namespace CarDealership
             pnlMain.Invalidate();
         }
 
+        // =============================================
+        // ROUNDED CORNERS
+        // =============================================
         private void ApplyRoundedCorners(Control ctrl, int radius)
         {
             using (GraphicsPath path = new GraphicsPath())

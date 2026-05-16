@@ -45,7 +45,7 @@
             this.pnlMain.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlMain_Paint);
             this.pnlMain.MouseDown += new System.Windows.Forms.MouseEventHandler(this.HandleDragging);
 
-            // Student ID textbox
+            // Student ID textbox (read-only, auto-assigned)
             this.txtRegUsername.Location = new System.Drawing.Point(60, 245);
             this.txtRegUsername.Size = new System.Drawing.Size(260, 30);
             this.txtRegUsername.BorderStyle = System.Windows.Forms.BorderStyle.None;
@@ -55,7 +55,7 @@
             this.txtRegUsername.Enter += new System.EventHandler(this.Field_Enter);
             this.txtRegUsername.Leave += new System.EventHandler(this.Field_Leave);
 
-            // "Student ID (Auto-assigned)" label — BELOW the textbox
+            // Student ID label
             this.lblStudentIDNote.AutoSize = true;
             this.lblStudentIDNote.Font = new System.Drawing.Font("Segoe UI", 8F);
             this.lblStudentIDNote.ForeColor = System.Drawing.Color.FromArgb(185, 187, 190);
@@ -72,22 +72,15 @@
             this.txtRegPassword.Enter += new System.EventHandler(this.Field_Enter);
             this.txtRegPassword.Leave += new System.EventHandler(this.Field_Leave);
 
-            // Program combobox
+            // Program combobox (loaded dynamically from database)
+            this.cboProgram = new System.Windows.Forms.ComboBox();
             this.cboProgram.Location = new System.Drawing.Point(60, 365);
             this.cboProgram.Size = new System.Drawing.Size(260, 30);
             this.cboProgram.Font = new System.Drawing.Font("Segoe UI", 14F);
             this.cboProgram.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboProgram.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.cboProgram.Items.AddRange(new object[] {
-    "Select Program",
-    "BSIT",
-    "BSCS",
-    "BSBA",
-    "BSED",
-    "BSHM"
-});
-            this.cboProgram.SelectedIndex = 0;
 
+            // Register button
             this.btnRegister.Location = new System.Drawing.Point(60, 430);
             this.btnRegister.Size = new System.Drawing.Size(260, 50);
             this.btnRegister.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -96,6 +89,7 @@
             this.btnRegister.Text = "REGISTER";
             this.btnRegister.Click += new System.EventHandler(this.btnRegister_Click);
 
+            // Back to login link
             this.lblBackToLogin.Text = "Already have an account? Login";
             this.lblBackToLogin.Location = new System.Drawing.Point(60, 495);
             this.lblBackToLogin.AutoSize = true;
@@ -103,13 +97,17 @@
             this.lblBackToLogin.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.lblBackToLogin.Click += new System.EventHandler(this.lblBackToLogin_Click);
 
-            this.btnDarkMode.Location = new System.Drawing.Point(265, 580);
-            this.btnDarkMode.Size = new System.Drawing.Size(100, 25);
+            // Theme toggle button
+            this.btnDarkMode.Location = new System.Drawing.Point(320, 575);
+            this.btnDarkMode.Size = new System.Drawing.Size(50, 35);
             this.btnDarkMode.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnDarkMode.FlatAppearance.BorderSize = 0;
-            this.btnDarkMode.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
+            this.btnDarkMode.BackColor = System.Drawing.Color.Transparent;
+            this.btnDarkMode.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.btnDarkMode.Text = "🌙";
             this.btnDarkMode.Click += new System.EventHandler(this.btnDarkMode_Click);
 
+            // Close button
             this.btnClose.Location = new System.Drawing.Point(340, 5);
             this.btnClose.Size = new System.Drawing.Size(35, 35);
             this.btnClose.Text = "X";
@@ -117,6 +115,7 @@
             this.btnClose.FlatAppearance.BorderSize = 0;
             this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
 
+            // Add all controls to panel
             this.pnlMain.Controls.AddRange(new System.Windows.Forms.Control[] {
                 this.btnClose,
                 this.txtRegUsername,

@@ -49,16 +49,26 @@
 
 ```sql
 -- =============================================
--- STUDENT CLEARANCE SYSTEM - COMPLETE DATABASE SETUP
+-- STUDENT CLEARANCE SYSTEM v2.1
+-- COMPLETE DATABASE SETUP SCRIPT
 -- =============================================
--- Run this entire script in SSMS to create the database
--- Includes: Department Clearance + Subject Clearance + Activity Logs
+-- Run this entire script in SQL Server Management Studio (SSMS)
+-- This will DROP and RECREATE the database from scratch
+-- 
+-- INCLUDES:
+--   - 4 user roles: SuperAdmin, Admin, Instructor, Student
+--   - Department clearance (6 departments)
+--   - Subject clearance (30 subjects across 5 programs)
+--   - Teacher subject load (junction table)
+--   - Activity logs with date range filtering
+--   - File upload support (Image + PDF)
+--   - 18 stored procedures
 -- =============================================
 
 USE master;
 GO
 
--- Drop database if it exists
+-- Drop existing database if present (WARNING: deletes all data)
 IF EXISTS (SELECT name FROM sys.databases WHERE name = 'StudentClearanceDB')
 BEGIN
     ALTER DATABASE StudentClearanceDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
@@ -66,9 +76,7 @@ BEGIN
 END
 GO
 
--- =============================================
--- CREATE DATABASE
--- =============================================
+-- Create fresh database
 CREATE DATABASE StudentClearanceDB;
 GO
 
@@ -76,84 +84,109 @@ USE StudentClearanceDB;
 GO
 
 -- =============================================
--- CREATE TABLES
+-- TABLE: StudentIDCounter
+-- Tracks the next available student ID number
+-- Used by sp_GenerateStudentID to create STUD001, STUD002...
 -- =============================================
-
--- Student ID counter table
 CREATE TABLE StudentIDCounter (
     LastNumber INT NOT NULL DEFAULT 0
 );
 GO
 
--- Users table
+-- =============================================
+-- TABLE: Users
+-- Stores ALL user accounts across all roles
+-- Role determines which dashboard they see after login
+-- Department is for Admins only, AssignedSubject for Instructors only
+-- =============================================
 CREATE TABLE Users (
     UserID INT IDENTITY(1,1) PRIMARY KEY,
     Username NVARCHAR(50) UNIQUE NOT NULL,
     Password NVARCHAR(100) NOT NULL,
     FullName NVARCHAR(100) NULL,
     Email NVARCHAR(100) NULL,
-    Program NVARCHAR(50) NULL,
-    ProfileImage VARBINARY(MAX) NULL,
-    Role NVARCHAR(20) NOT NULL DEFAULT 'Student',
-    Department NVARCHAR(50) NULL,
-    AssignedSubject NVARCHAR(80) NULL,
+    Program NVARCHAR(50) NULL,              -- Student's program code (BSIT, BSCS, etc.)
+    ProfileImage VARBINARY(MAX) NULL,       -- Profile picture as binary data
+    Role NVARCHAR(20) NOT NULL DEFAULT 'Student',  -- SuperAdmin, Admin, Instructor, Student
+    Department NVARCHAR(50) NULL,           -- For department admins only (Library, SAO, etc.)
+    AssignedSubject NVARCHAR(80) NULL,      -- Legacy: single subject per instructor
     CreatedAt DATETIME DEFAULT GETDATE()
 );
 GO
 
--- Departments table
+-- =============================================
+-- TABLE: Departments
+-- The 6 clearance departments every student must clear
+-- =============================================
 CREATE TABLE Departments (
     DepartmentID INT IDENTITY(1,1) PRIMARY KEY,
     DepartmentName NVARCHAR(50) UNIQUE NOT NULL,
     Description NVARCHAR(200) NULL,
-    DisplayOrder INT DEFAULT 0
+    DisplayOrder INT DEFAULT 0               -- Controls display order on student dashboard
 );
 GO
 
--- Clearance Submissions table (department)
+-- =============================================
+-- TABLE: ClearanceSubmissions
+-- Stores department clearance submissions from students
+-- FileData can be image or PDF (determined by FileType)
+-- =============================================
 CREATE TABLE ClearanceSubmissions (
     SubmissionID INT IDENTITY(1,1) PRIMARY KEY,
     StudentUsername NVARCHAR(50) NOT NULL,
     DepartmentName NVARCHAR(50) NOT NULL,
-    ImageData VARBINARY(MAX) NULL,
-    ImageFileName NVARCHAR(255) NULL,
-    Status NVARCHAR(20) DEFAULT 'Pending',
-    RejectionReason NVARCHAR(500) NULL,
+    FileData VARBINARY(MAX) NULL,           -- The uploaded file (image or PDF)
+    FileName NVARCHAR(255) NULL,            -- Original filename
+    FileType NVARCHAR(10) NULL,             -- File extension without dot: 'pdf', 'jpg', 'png'
+    Status NVARCHAR(20) DEFAULT 'Pending',  -- Pending, Approved, Rejected
+    RejectionReason NVARCHAR(500) NULL,     -- Required if rejected
     SubmittedAt DATETIME DEFAULT GETDATE(),
     ReviewedAt DATETIME NULL,
-    ReviewedBy NVARCHAR(50) NULL,
+    ReviewedBy NVARCHAR(50) NULL,           -- Username of admin who reviewed
     FOREIGN KEY (StudentUsername) REFERENCES Users(Username) ON DELETE CASCADE,
     FOREIGN KEY (DepartmentName) REFERENCES Departments(DepartmentName)
 );
 GO
 
--- Programs table
+-- =============================================
+-- TABLE: Programs
+-- Academic programs that students belong to
+-- Each program has multiple subjects
+-- =============================================
 CREATE TABLE Programs (
     ProgramID INT IDENTITY(1,1) PRIMARY KEY,
-    ProgramCode NVARCHAR(10) UNIQUE NOT NULL,
-    ProgramName NVARCHAR(100) NOT NULL,
+    ProgramCode NVARCHAR(10) UNIQUE NOT NULL,   -- Short code: BSIT, BSCS, etc.
+    ProgramName NVARCHAR(100) NOT NULL,         -- Full name: BS Information Technology
     CreatedAt DATETIME DEFAULT GETDATE()
 );
 GO
 
--- Subjects table
+-- =============================================
+-- TABLE: Subjects
+-- Subjects within each program
+-- Students must clear all subjects in their program
+-- =============================================
 CREATE TABLE Subjects (
     SubjectID INT IDENTITY(1,1) PRIMARY KEY,
-    ProgramCode NVARCHAR(10) NOT NULL,
+    ProgramCode NVARCHAR(10) NOT NULL,          -- Which program this subject belongs to
     SubjectName NVARCHAR(80) NOT NULL,
-    DisplayOrder INT DEFAULT 0,
+    DisplayOrder INT DEFAULT 0,                 -- Display order on student dashboard
     FOREIGN KEY (ProgramCode) REFERENCES Programs(ProgramCode) ON DELETE CASCADE,
-    CONSTRAINT UQ_SubjectPerProgram UNIQUE (ProgramCode, SubjectName)
+    CONSTRAINT UQ_SubjectPerProgram UNIQUE (ProgramCode, SubjectName)  -- No duplicate subject names per program
 );
 GO
 
--- Subject Clearance Submissions table
+-- =============================================
+-- TABLE: SubjectClearanceSubmissions
+-- Stores subject clearance submissions (like department but per subject)
+-- =============================================
 CREATE TABLE SubjectClearanceSubmissions (
     SubmissionID INT IDENTITY(1,1) PRIMARY KEY,
     StudentUsername NVARCHAR(50) NOT NULL,
     SubjectName NVARCHAR(80) NOT NULL,
-    ImageData VARBINARY(MAX) NULL,
-    ImageFileName NVARCHAR(255) NULL,
+    FileData VARBINARY(MAX) NULL,
+    FileName NVARCHAR(255) NULL,
+    FileType NVARCHAR(10) NULL,
     Status NVARCHAR(20) DEFAULT 'Pending',
     RejectionReason NVARCHAR(500) NULL,
     SubmittedAt DATETIME DEFAULT GETDATE(),
@@ -163,38 +196,63 @@ CREATE TABLE SubjectClearanceSubmissions (
 );
 GO
 
--- Notifications table
+-- =============================================
+-- TABLE: Notifications
+-- Real-time alerts for students and instructors
+-- Populated by stored procedures when submissions are created/reviewed
+-- =============================================
 CREATE TABLE Notifications (
     NotificationID INT IDENTITY(1,1) PRIMARY KEY,
-    Username NVARCHAR(50) NOT NULL,
+    Username NVARCHAR(50) NOT NULL,             -- Recipient of the notification
     Message NVARCHAR(500) NOT NULL,
-    Type NVARCHAR(50) NULL,
-    IsRead BIT DEFAULT 0,
+    Type NVARCHAR(50) NULL,                     -- NewSubmission, ClearanceUpdate, SubjectClearanceUpdate
+    IsRead BIT DEFAULT 0,                       -- 0 = unread, 1 = read
     CreatedAt DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (Username) REFERENCES Users(Username) ON DELETE CASCADE
 );
 GO
 
 -- =============================================
--- NEW: ACTIVITY LOGS TABLE
+-- TABLE: ActivityLogs
+-- Persistent log of all admin/instructor actions
+-- Used for the Activity Log panel and CSV download
+-- LogType: Submission, Approval, Rejection, System
 -- =============================================
 CREATE TABLE ActivityLogs (
     LogID INT IDENTITY(1,1) PRIMARY KEY,
-    Username NVARCHAR(50) NOT NULL,
-    Message NVARCHAR(500) NOT NULL,
-    LogType NVARCHAR(30) NOT NULL,
+    Username NVARCHAR(50) NOT NULL,             -- Admin/Instructor who performed the action
+    Message NVARCHAR(500) NOT NULL,             -- Human-readable description
+    LogType NVARCHAR(30) NOT NULL,              -- Category of action
     CreatedAt DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (Username) REFERENCES Users(Username) ON DELETE CASCADE
 );
 GO
 
 -- =============================================
--- INSERT INITIAL DATA
+-- TABLE: TeacherSubjects (JUNCTION TABLE)
+-- NEW in v2.1: Allows teachers to cover MULTIPLE subjects
+-- Replaces the old single AssignedSubject column in Users table
+-- A teacher can have many subjects, a subject can have many teachers
+-- =============================================
+CREATE TABLE TeacherSubjects (
+    TeacherSubjectID INT IDENTITY(1,1) PRIMARY KEY,
+    TeacherUsername NVARCHAR(50) NOT NULL,      -- The instructor
+    SubjectName NVARCHAR(80) NOT NULL,          -- The subject they cover
+    ProgramCode NVARCHAR(10) NOT NULL,          -- Which program this subject is in
+    FOREIGN KEY (TeacherUsername) REFERENCES Users(Username) ON DELETE CASCADE,
+    CONSTRAINT UQ_TeacherSubject UNIQUE (TeacherUsername, SubjectName, ProgramCode)  -- No duplicate assignments
+);
+GO
+
+-- =============================================
+-- INSERT SEED DATA
 -- =============================================
 
+-- Initialize counter: first registered student gets STUD001
 INSERT INTO StudentIDCounter (LastNumber) VALUES (0);
 GO
 
+-- Insert the 6 clearance departments
 INSERT INTO Departments (DepartmentName, Description, DisplayOrder) VALUES
 ('Library', 'Library clearance for borrowed books', 1),
 ('SAO', 'Student Affairs Office clearance', 2),
@@ -204,6 +262,7 @@ INSERT INTO Departments (DepartmentName, Description, DisplayOrder) VALUES
 ('Records', 'Records and Registrar clearance', 6);
 GO
 
+-- Insert the 5 academic programs
 INSERT INTO Programs (ProgramCode, ProgramName) VALUES
 ('BSIT', 'BS Information Technology'),
 ('BSCS', 'BS Computer Science'),
@@ -212,7 +271,12 @@ INSERT INTO Programs (ProgramCode, ProgramName) VALUES
 ('BSHM', 'BS Hospitality Management');
 GO
 
--- Subjects
+-- =============================================
+-- INSERT SUBJECTS (6 per program = 30 total)
+-- Each subject has a DisplayOrder for sorting on the student dashboard
+-- =============================================
+
+-- BSIT Subjects
 INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) VALUES
 ('BSIT', 'Programming 1', 1),
 ('BSIT', 'Database Systems', 2),
@@ -221,6 +285,7 @@ INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) VALUES
 ('BSIT', 'OS Concepts', 5),
 ('BSIT', 'System Analysis', 6);
 
+-- BSCS Subjects
 INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) VALUES
 ('BSCS', 'Data Structures', 1),
 ('BSCS', 'Algorithms', 2),
@@ -229,6 +294,7 @@ INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) VALUES
 ('BSCS', 'AI Basics', 5),
 ('BSCS', 'Computer Org', 6);
 
+-- BSBA Subjects
 INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) VALUES
 ('BSBA', 'Financial Mgmt', 1),
 ('BSBA', 'Marketing 101', 2),
@@ -237,6 +303,7 @@ INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) VALUES
 ('BSBA', 'Operations Mgmt', 5),
 ('BSBA', 'Business Law', 6);
 
+-- BSED Subjects
 INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) VALUES
 ('BSED', 'Found. of Educ', 1),
 ('BSED', 'Ed. Psychology', 2),
@@ -245,6 +312,7 @@ INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) VALUES
 ('BSED', 'Assessment 101', 5),
 ('BSED', 'Child Dev', 6);
 
+-- BSHM Subjects
 INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) VALUES
 ('BSHM', 'Food & Beverage', 1),
 ('BSHM', 'Housekeeping', 2),
@@ -254,17 +322,27 @@ INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) VALUES
 ('BSHM', 'Bartending', 6);
 GO
 
--- Admin accounts
-INSERT INTO Users (Username, Password, FullName, Role, Department, Program) VALUES
-('admin_library', 'admin123', 'Library Administrator', 'Admin', 'Library', NULL),
-('admin_sao', 'admin123', 'SAO Administrator', 'Admin', 'SAO', NULL),
-('admin_cashier', 'admin123', 'Cashier Administrator', 'Admin', 'Cashier', NULL),
-('admin_accounting', 'admin123', 'Accounting Administrator', 'Admin', 'Accounting', NULL),
-('admin_dean', 'admin123', 'Dean''s Office Administrator', 'Admin', 'Dean''s Office', NULL),
-('admin_records', 'admin123', 'Records Administrator', 'Admin', 'Records', NULL);
+-- =============================================
+-- INSERT USER ACCOUNTS
+-- =============================================
+
+-- Super Admin: manages the entire system (programs, subjects, teachers, students)
+INSERT INTO Users (Username, Password, FullName, Role) VALUES
+('super_admin', 'admin123', 'System Administrator', 'SuperAdmin');
 GO
 
--- Instructor accounts
+-- Department Admins: each reviews submissions for their assigned department
+INSERT INTO Users (Username, Password, FullName, Role, Department) VALUES
+('admin_library', 'admin123', 'Library Administrator', 'Admin', 'Library'),
+('admin_sao', 'admin123', 'SAO Administrator', 'Admin', 'SAO'),
+('admin_cashier', 'admin123', 'Cashier Administrator', 'Admin', 'Cashier'),
+('admin_accounting', 'admin123', 'Accounting Administrator', 'Admin', 'Accounting'),
+('admin_dean', 'admin123', 'Dean''s Office Administrator', 'Admin', 'Dean''s Office'),
+('admin_records', 'admin123', 'Records Administrator', 'Admin', 'Records');
+GO
+
+-- Instructors: each reviews submissions for their assigned subject(s)
+-- Note: AssignedSubject is the PRIMARY subject; TeacherSubjects junction table handles additional subjects
 INSERT INTO Users (Username, Password, FullName, Role, AssignedSubject) VALUES
 ('inst_prog1', 'inst123', 'Instructor - Programming 1', 'Instructor', 'Programming 1'),
 ('inst_db', 'inst123', 'Instructor - Database Systems', 'Instructor', 'Database Systems'),
@@ -298,11 +376,20 @@ INSERT INTO Users (Username, Password, FullName, Role, AssignedSubject) VALUES
 ('inst_bt', 'inst123', 'Instructor - Bartending', 'Instructor', 'Bartending');
 GO
 
--- Test student
+-- Seed TeacherSubjects: each instructor initially covers their AssignedSubject
+-- This mirrors the legacy single-subject setup so existing functionality continues to work
+INSERT INTO TeacherSubjects (TeacherUsername, SubjectName, ProgramCode)
+SELECT Username, AssignedSubject,
+    (SELECT TOP 1 ProgramCode FROM Subjects WHERE SubjectName = Users.AssignedSubject)
+FROM Users WHERE Role = 'Instructor' AND AssignedSubject IS NOT NULL;
+GO
+
+-- Test student account for development
 INSERT INTO Users (Username, Password, FullName, Role, Program) VALUES
 ('STUD001', 'student123', 'John Doe', 'Student', 'BSIT');
 GO
 
+-- Set counter so next registered student gets STUD002
 UPDATE StudentIDCounter SET LastNumber = 1;
 GO
 
@@ -310,157 +397,312 @@ GO
 -- STORED PROCEDURES
 -- =============================================
 
--- Generate next Student ID
+-- =============================================
+-- sp_GenerateStudentID
+-- Atomically generates the next student ID (STUD001, STUD002...)
+-- Uses OUTPUT parameter to return the new ID
+-- Thread-safe: uses UPDATE with variable assignment in a single statement
+-- =============================================
 CREATE PROCEDURE sp_GenerateStudentID
     @NewStudentID NVARCHAR(50) OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @NextNumber INT;
-    UPDATE StudentIDCounter
-    SET @NextNumber = LastNumber + 1, LastNumber = LastNumber + 1;
-    IF @NextNumber < 10 SET @NewStudentID = 'STUD00' + CAST(@NextNumber AS NVARCHAR);
-    ELSE IF @NextNumber < 100 SET @NewStudentID = 'STUD0' + CAST(@NextNumber AS NVARCHAR);
-    ELSE SET @NewStudentID = 'STUD' + CAST(@NextNumber AS NVARCHAR);
+    
+    -- Atomically increment and retrieve the next number
+    UPDATE StudentIDCounter 
+    SET @NextNumber = LastNumber + 1, 
+        LastNumber = LastNumber + 1;
+    
+    -- Format with leading zeros: STUD001, STUD010, STUD100
+    IF @NextNumber < 10 
+        SET @NewStudentID = 'STUD00' + CAST(@NextNumber AS NVARCHAR);
+    ELSE IF @NextNumber < 100 
+        SET @NewStudentID = 'STUD0' + CAST(@NextNumber AS NVARCHAR);
+    ELSE 
+        SET @NewStudentID = 'STUD' + CAST(@NextNumber AS NVARCHAR);
 END
 GO
 
--- Department clearance status
+-- =============================================
+-- sp_GetStudentClearanceStatus
+-- Returns clearance status for all 6 departments for a given student
+-- Shows 'Pending' if no submission exists yet
+-- =============================================
 CREATE PROCEDURE sp_GetStudentClearanceStatus
     @Username NVARCHAR(50)
 AS
 BEGIN
-    SELECT d.DepartmentName, ISNULL(cs.Status, 'Pending') AS Status, cs.SubmittedAt, cs.ReviewedAt, cs.RejectionReason
+    SELECT 
+        d.DepartmentName,
+        ISNULL(cs.Status, 'Pending') AS Status,
+        cs.SubmittedAt,
+        cs.ReviewedAt,
+        cs.RejectionReason
     FROM Departments d
-    LEFT JOIN ClearanceSubmissions cs ON d.DepartmentName = cs.DepartmentName AND cs.StudentUsername = @Username
+    LEFT JOIN ClearanceSubmissions cs 
+        ON d.DepartmentName = cs.DepartmentName 
+        AND cs.StudentUsername = @Username
     ORDER BY d.DisplayOrder;
 END
 GO
 
--- Submit department clearance
+-- =============================================
+-- sp_SubmitClearance
+-- Student submits a file for department clearance
+-- If a submission already exists, updates it (re-submission)
+-- Also creates a notification for the department admin
+-- Also logs the activity
+-- =============================================
 CREATE PROCEDURE sp_SubmitClearance
     @StudentUsername NVARCHAR(50),
     @DepartmentName NVARCHAR(50),
-    @ImageData VARBINARY(MAX),
-    @ImageFileName NVARCHAR(255)
+    @FileData VARBINARY(MAX),
+    @FileName NVARCHAR(255),
+    @FileType NVARCHAR(10)          -- 'pdf', 'jpg', 'png', etc.
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF EXISTS (SELECT 1 FROM ClearanceSubmissions WHERE StudentUsername = @StudentUsername AND DepartmentName = @DepartmentName)
+    
+    -- Check if student already submitted for this department
+    IF EXISTS (SELECT 1 FROM ClearanceSubmissions 
+               WHERE StudentUsername = @StudentUsername 
+               AND DepartmentName = @DepartmentName)
     BEGIN
-        UPDATE ClearanceSubmissions SET ImageData = @ImageData, ImageFileName = @ImageFileName, Status = 'Pending',
-            SubmittedAt = GETDATE(), ReviewedAt = NULL, ReviewedBy = NULL, RejectionReason = NULL
-        WHERE StudentUsername = @StudentUsername AND DepartmentName = @DepartmentName;
+        -- Update existing submission (re-submission)
+        UPDATE ClearanceSubmissions 
+        SET FileData = @FileData, 
+            FileName = @FileName, 
+            FileType = @FileType, 
+            Status = 'Pending',
+            SubmittedAt = GETDATE(), 
+            ReviewedAt = NULL, 
+            ReviewedBy = NULL, 
+            RejectionReason = NULL
+        WHERE StudentUsername = @StudentUsername 
+          AND DepartmentName = @DepartmentName;
     END
     ELSE
     BEGIN
-        INSERT INTO ClearanceSubmissions (StudentUsername, DepartmentName, ImageData, ImageFileName, Status, SubmittedAt)
-        VALUES (@StudentUsername, @DepartmentName, @ImageData, @ImageFileName, 'Pending', GETDATE());
+        -- Insert new submission
+        INSERT INTO ClearanceSubmissions 
+            (StudentUsername, DepartmentName, FileData, FileName, FileType, Status, SubmittedAt)
+        VALUES 
+            (@StudentUsername, @DepartmentName, @FileData, @FileName, @FileType, 'Pending', GETDATE());
     END
+
+    -- Find the admin assigned to this department
     DECLARE @AdminUsername NVARCHAR(50);
-    SELECT @AdminUsername = Username FROM Users WHERE Role = 'Admin' AND Department = @DepartmentName;
+    SELECT @AdminUsername = Username FROM Users 
+    WHERE Role = 'Admin' AND Department = @DepartmentName;
+    
+    -- Notify admin + log activity
     IF @AdminUsername IS NOT NULL
     BEGIN
         INSERT INTO Notifications (Username, Message, Type, IsRead, CreatedAt)
-        VALUES (@AdminUsername, 'New clearance submission from ' + @StudentUsername + ' for ' + @DepartmentName, 'NewSubmission', 0, GETDATE());
-        -- NEW: Activity log
+        VALUES (@AdminUsername, 
+                'New clearance submission from ' + @StudentUsername + ' for ' + @DepartmentName,
+                'NewSubmission', 0, GETDATE());
+        
         INSERT INTO ActivityLogs (Username, Message, LogType, CreatedAt)
-        VALUES (@AdminUsername, 'Received submission from ' + @StudentUsername, 'Submission', GETDATE());
+        VALUES (@AdminUsername, 
+                'Received submission from ' + @StudentUsername, 
+                'Submission', GETDATE());
     END
 END
 GO
 
--- Review department clearance
+-- =============================================
+-- sp_ReviewClearance
+-- Admin approves or rejects a department clearance submission
+-- Updates the submission status and notifies the student
+-- Also logs the activity (approval or rejection)
+-- =============================================
 CREATE PROCEDURE sp_ReviewClearance
     @SubmissionID INT,
-    @Status NVARCHAR(20),
+    @Status NVARCHAR(20),               -- 'Approved' or 'Rejected'
     @RejectionReason NVARCHAR(500) = NULL,
     @ReviewedBy NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
+    
+    -- Get the student and department from the submission
     DECLARE @StudentUsername NVARCHAR(50), @DepartmentName NVARCHAR(50);
-    SELECT @StudentUsername = StudentUsername, @DepartmentName = DepartmentName FROM ClearanceSubmissions WHERE SubmissionID = @SubmissionID;
-    UPDATE ClearanceSubmissions SET Status = @Status, RejectionReason = @RejectionReason, ReviewedAt = GETDATE(), ReviewedBy = @ReviewedBy WHERE SubmissionID = @SubmissionID;
+    SELECT @StudentUsername = StudentUsername, 
+           @DepartmentName = DepartmentName 
+    FROM ClearanceSubmissions 
+    WHERE SubmissionID = @SubmissionID;
+    
+    -- Update the submission
+    UPDATE ClearanceSubmissions
+    SET Status = @Status,
+        RejectionReason = @RejectionReason,
+        ReviewedAt = GETDATE(),
+        ReviewedBy = @ReviewedBy
+    WHERE SubmissionID = @SubmissionID;
+    
+    -- Build notification message and log the action
     DECLARE @Message NVARCHAR(500);
     IF @Status = 'Approved'
     BEGIN
         SET @Message = 'Your ' + @DepartmentName + ' clearance has been APPROVED!';
-        INSERT INTO ActivityLogs (Username, Message, LogType, CreatedAt) VALUES (@ReviewedBy, 'Approved submission from ' + @StudentUsername, 'Approval', GETDATE());
+        INSERT INTO ActivityLogs (Username, Message, LogType, CreatedAt) 
+        VALUES (@ReviewedBy, 'Approved submission from ' + @StudentUsername, 'Approval', GETDATE());
     END
     ELSE
     BEGIN
-        SET @Message = 'Your ' + @DepartmentName + ' clearance was REJECTED. Reason: ' + ISNULL(@RejectionReason, 'No reason provided');
-        INSERT INTO ActivityLogs (Username, Message, LogType, CreatedAt) VALUES (@ReviewedBy, 'Rejected submission from ' + @StudentUsername + ' - Reason: ' + ISNULL(@RejectionReason, 'No reason'), 'Rejection', GETDATE());
+        SET @Message = 'Your ' + @DepartmentName + ' clearance was REJECTED. Reason: ' 
+                     + ISNULL(@RejectionReason, 'No reason provided');
+        INSERT INTO ActivityLogs (Username, Message, LogType, CreatedAt) 
+        VALUES (@ReviewedBy, 
+                'Rejected submission from ' + @StudentUsername + ' - Reason: ' 
+                + ISNULL(@RejectionReason, 'No reason'), 
+                'Rejection', GETDATE());
     END
-    INSERT INTO Notifications (Username, Message, Type, IsRead, CreatedAt) VALUES (@StudentUsername, @Message, 'ClearanceUpdate', 0, GETDATE());
+    
+    -- Notify the student
+    INSERT INTO Notifications (Username, Message, Type, IsRead, CreatedAt)
+    VALUES (@StudentUsername, @Message, 'ClearanceUpdate', 0, GETDATE());
+    
+    -- Return confirmation
     SELECT @StudentUsername AS StudentUsername, @DepartmentName AS DepartmentName, @Status AS Status;
 END
 GO
 
--- Get pending submissions for department admin
+-- =============================================
+-- sp_GetPendingSubmissions
+-- Returns all pending department submissions for an admin
+-- =============================================
 CREATE PROCEDURE sp_GetPendingSubmissions
     @DepartmentName NVARCHAR(50)
 AS
 BEGIN
-    SELECT cs.SubmissionID, cs.StudentUsername, u.FullName AS StudentName, u.Program AS StudentProgram,
-           cs.ImageData, cs.ImageFileName, cs.SubmittedAt, cs.Status
+    SELECT 
+        cs.SubmissionID,
+        cs.StudentUsername,
+        u.FullName AS StudentName,
+        u.Program AS StudentProgram,
+        cs.FileData,
+        cs.FileName,
+        cs.FileType,
+        cs.SubmittedAt,
+        cs.Status
     FROM ClearanceSubmissions cs
     INNER JOIN Users u ON cs.StudentUsername = u.Username
-    WHERE cs.DepartmentName = @DepartmentName AND cs.Status = 'Pending'
+    WHERE cs.DepartmentName = @DepartmentName 
+      AND cs.Status = 'Pending'
     ORDER BY cs.SubmittedAt DESC;
 END
 GO
 
--- Get student subject status
+-- =============================================
+-- sp_GetStudentSubjectStatus
+-- Returns subject clearance status for a student's program
+-- Only shows subjects that belong to the student's program
+-- =============================================
 CREATE PROCEDURE sp_GetStudentSubjectStatus
     @Username NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT s.SubjectName, s.DisplayOrder, ISNULL(scs.Status, 'Pending') AS Status, scs.SubmittedAt, scs.ReviewedAt, scs.RejectionReason
+    
+    SELECT 
+        s.SubjectName,
+        s.DisplayOrder,
+        ISNULL(scs.Status, 'Pending') AS Status,
+        scs.SubmittedAt,
+        scs.ReviewedAt,
+        scs.RejectionReason
     FROM Users u
     INNER JOIN Subjects s ON u.Program = s.ProgramCode
-    LEFT JOIN SubjectClearanceSubmissions scs ON s.SubjectName = scs.SubjectName AND scs.StudentUsername = @Username
+    LEFT JOIN SubjectClearanceSubmissions scs 
+        ON s.SubjectName = scs.SubjectName 
+        AND scs.StudentUsername = @Username
     WHERE u.Username = @Username
     ORDER BY s.DisplayOrder;
 END
 GO
 
--- Submit subject clearance
+-- =============================================
+-- sp_SubmitSubjectClearance
+-- Student submits a file for subject clearance
+-- NEW in v2.1: Notifies ALL teachers assigned to this subject
+-- Uses a CURSOR to loop through TeacherSubjects junction table
+-- This supports the multi-teacher subject load feature
+-- =============================================
 CREATE PROCEDURE sp_SubmitSubjectClearance
     @StudentUsername NVARCHAR(50),
     @SubjectName NVARCHAR(80),
-    @ImageData VARBINARY(MAX),
-    @ImageFileName NVARCHAR(255)
+    @FileData VARBINARY(MAX),
+    @FileName NVARCHAR(255),
+    @FileType NVARCHAR(10)
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF EXISTS (SELECT 1 FROM SubjectClearanceSubmissions WHERE StudentUsername = @StudentUsername AND SubjectName = @SubjectName)
+    
+    -- Upsert: update if exists, insert if new
+    IF EXISTS (SELECT 1 FROM SubjectClearanceSubmissions 
+               WHERE StudentUsername = @StudentUsername 
+               AND SubjectName = @SubjectName)
     BEGIN
-        UPDATE SubjectClearanceSubmissions SET ImageData = @ImageData, ImageFileName = @ImageFileName, Status = 'Pending',
-            RejectionReason = NULL, SubmittedAt = GETDATE(), ReviewedAt = NULL, ReviewedBy = NULL
-        WHERE StudentUsername = @StudentUsername AND SubjectName = @SubjectName;
+        UPDATE SubjectClearanceSubmissions 
+        SET FileData = @FileData, 
+            FileName = @FileName, 
+            FileType = @FileType, 
+            Status = 'Pending',
+            RejectionReason = NULL, 
+            SubmittedAt = GETDATE(), 
+            ReviewedAt = NULL, 
+            ReviewedBy = NULL
+        WHERE StudentUsername = @StudentUsername 
+          AND SubjectName = @SubjectName;
     END
     ELSE
     BEGIN
-        INSERT INTO SubjectClearanceSubmissions (StudentUsername, SubjectName, ImageData, ImageFileName, Status, SubmittedAt)
-        VALUES (@StudentUsername, @SubjectName, @ImageData, @ImageFileName, 'Pending', GETDATE());
+        INSERT INTO SubjectClearanceSubmissions 
+            (StudentUsername, SubjectName, FileData, FileName, FileType, Status, SubmittedAt)
+        VALUES 
+            (@StudentUsername, @SubjectName, @FileData, @FileName, @FileType, 'Pending', GETDATE());
     END
-    DECLARE @InstructorUsername NVARCHAR(50);
-    SELECT @InstructorUsername = Username FROM Users WHERE Role = 'Instructor' AND AssignedSubject = @SubjectName;
-    IF @InstructorUsername IS NOT NULL
+
+    -- NOTIFY ALL TEACHERS assigned to this subject via the junction table
+    -- Cursor loops through each teacher and creates a notification + activity log
+    DECLARE @TeacherUsername NVARCHAR(50);
+    DECLARE teacher_cursor CURSOR FOR
+        SELECT TeacherUsername FROM TeacherSubjects WHERE SubjectName = @SubjectName;
+    
+    OPEN teacher_cursor;
+    FETCH NEXT FROM teacher_cursor INTO @TeacherUsername;
+    
+    WHILE @@FETCH_STATUS = 0
     BEGIN
+        -- Create notification for this teacher
         INSERT INTO Notifications (Username, Message, Type, IsRead, CreatedAt)
-        VALUES (@InstructorUsername, 'New subject clearance from ' + @StudentUsername + ' for ' + @SubjectName, 'NewSubjectSubmission', 0, GETDATE());
-        -- NEW: Activity log
+        VALUES (@TeacherUsername, 
+                'New subject clearance from ' + @StudentUsername + ' for ' + @SubjectName,
+                'NewSubjectSubmission', 0, GETDATE());
+        
+        -- Log the submission
         INSERT INTO ActivityLogs (Username, Message, LogType, CreatedAt)
-        VALUES (@InstructorUsername, 'Received submission from ' + @StudentUsername, 'Submission', GETDATE());
-    END
+        VALUES (@TeacherUsername, 
+                'Received submission from ' + @StudentUsername, 
+                'Submission', GETDATE());
+        
+        FETCH NEXT FROM teacher_cursor INTO @TeacherUsername;
+    END;
+    
+    CLOSE teacher_cursor;
+    DEALLOCATE teacher_cursor;
 END
 GO
 
--- Review subject clearance
+-- =============================================
+-- sp_ReviewSubjectClearance
+-- Instructor approves or rejects a subject clearance submission
+-- Works the same as department review but for subjects
+-- =============================================
 CREATE PROCEDURE sp_ReviewSubjectClearance
     @SubmissionID INT,
     @Status NVARCHAR(20),
@@ -469,87 +711,363 @@ CREATE PROCEDURE sp_ReviewSubjectClearance
 AS
 BEGIN
     SET NOCOUNT ON;
+    
     DECLARE @StudentUsername NVARCHAR(50), @SubjectName NVARCHAR(80);
-    SELECT @StudentUsername = StudentUsername, @SubjectName = SubjectName FROM SubjectClearanceSubmissions WHERE SubmissionID = @SubmissionID;
-    UPDATE SubjectClearanceSubmissions SET Status = @Status, RejectionReason = @RejectionReason, ReviewedAt = GETDATE(), ReviewedBy = @ReviewedBy WHERE SubmissionID = @SubmissionID;
+    SELECT @StudentUsername = StudentUsername, 
+           @SubjectName = SubjectName 
+    FROM SubjectClearanceSubmissions 
+    WHERE SubmissionID = @SubmissionID;
+    
+    UPDATE SubjectClearanceSubmissions
+    SET Status = @Status,
+        RejectionReason = @RejectionReason,
+        ReviewedAt = GETDATE(),
+        ReviewedBy = @ReviewedBy
+    WHERE SubmissionID = @SubmissionID;
+    
     DECLARE @Message NVARCHAR(500);
     IF @Status = 'Approved'
     BEGIN
         SET @Message = 'Your ' + @SubjectName + ' clearance has been APPROVED!';
-        INSERT INTO ActivityLogs (Username, Message, LogType, CreatedAt) VALUES (@ReviewedBy, 'Approved submission from ' + @StudentUsername, 'Approval', GETDATE());
+        INSERT INTO ActivityLogs (Username, Message, LogType, CreatedAt) 
+        VALUES (@ReviewedBy, 'Approved submission from ' + @StudentUsername, 'Approval', GETDATE());
     END
     ELSE
     BEGIN
-        SET @Message = 'Your ' + @SubjectName + ' clearance was REJECTED. Reason: ' + ISNULL(@RejectionReason, 'No reason provided');
-        INSERT INTO ActivityLogs (Username, Message, LogType, CreatedAt) VALUES (@ReviewedBy, 'Rejected submission from ' + @StudentUsername + ' - Reason: ' + ISNULL(@RejectionReason, 'No reason'), 'Rejection', GETDATE());
+        SET @Message = 'Your ' + @SubjectName + ' clearance was REJECTED. Reason: ' 
+                     + ISNULL(@RejectionReason, 'No reason provided');
+        INSERT INTO ActivityLogs (Username, Message, LogType, CreatedAt) 
+        VALUES (@ReviewedBy, 
+                'Rejected submission from ' + @StudentUsername + ' - Reason: ' 
+                + ISNULL(@RejectionReason, 'No reason'), 
+                'Rejection', GETDATE());
     END
-    INSERT INTO Notifications (Username, Message, Type, IsRead, CreatedAt) VALUES (@StudentUsername, @Message, 'SubjectClearanceUpdate', 0, GETDATE());
+    
+    INSERT INTO Notifications (Username, Message, Type, IsRead, CreatedAt)
+    VALUES (@StudentUsername, @Message, 'SubjectClearanceUpdate', 0, GETDATE());
+    
     SELECT @StudentUsername AS StudentUsername, @SubjectName AS SubjectName, @Status AS Status;
 END
 GO
 
--- Get pending subject submissions
+-- =============================================
+-- sp_GetPendingSubjectSubmissions
+-- UPDATED in v2.1: Now accepts @TeacherUsername instead of @SubjectName
+-- Joins with TeacherSubjects to get ALL subjects the teacher covers
+-- This enables the multi-subject teacher load feature
+-- =============================================
 CREATE PROCEDURE sp_GetPendingSubjectSubmissions
-    @SubjectName NVARCHAR(80)
+    @TeacherUsername NVARCHAR(50)
 AS
 BEGIN
-    SELECT scs.SubmissionID, scs.StudentUsername, u.FullName AS StudentName, u.Program AS StudentProgram,
-           scs.ImageData, scs.ImageFileName, scs.SubmittedAt, scs.Status
+    SELECT 
+        scs.SubmissionID,
+        scs.StudentUsername,
+        u.FullName AS StudentName,
+        u.Program AS StudentProgram,
+        scs.FileData,
+        scs.FileName,
+        scs.FileType,
+        scs.SubmittedAt,
+        scs.Status,
+        scs.SubjectName                    -- Include subject name so instructor knows which subject
     FROM SubjectClearanceSubmissions scs
     INNER JOIN Users u ON scs.StudentUsername = u.Username
-    WHERE scs.SubjectName = @SubjectName AND scs.Status = 'Pending'
+    INNER JOIN TeacherSubjects ts ON scs.SubjectName = ts.SubjectName  -- Junction table join
+    WHERE ts.TeacherUsername = @TeacherUsername 
+      AND scs.Status = 'Pending'
     ORDER BY scs.SubmittedAt DESC;
 END
 GO
 
--- Get unread notification count
+-- =============================================
+-- sp_GetUnreadNotificationCount
+-- Returns count of unread notifications for badge display
+-- =============================================
 CREATE PROCEDURE sp_GetUnreadNotificationCount
     @Username NVARCHAR(50)
 AS
 BEGIN
-    SELECT COUNT(*) AS UnreadCount FROM Notifications WHERE Username = @Username AND IsRead = 0;
+    SELECT COUNT(*) AS UnreadCount 
+    FROM Notifications 
+    WHERE Username = @Username AND IsRead = 0;
 END
 GO
 
 -- =============================================
--- NEW: ACTIVITY LOGS PROCEDURES
+-- sp_GetActivityLogs
+-- Returns all activity logs for an admin/instructor
+-- Used in the Activity Log panel
 -- =============================================
-
--- Get activity logs for a specific admin/instructor
 CREATE PROCEDURE sp_GetActivityLogs
     @Username NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT LogID, Message, LogType, CreatedAt
-    FROM ActivityLogs
+    FROM ActivityLogs 
     WHERE Username = @Username
     ORDER BY CreatedAt DESC;
 END
 GO
 
 -- =============================================
--- COMPLETE!
+-- SUPER ADMIN PROCEDURES (v2.1)
+-- These procedures power the SuperAdminForm operator panel
+-- =============================================
+
+-- =============================================
+-- sp_GetLogsByDateRange
+-- Returns activity logs filtered by date range
+-- Used by the Download CSV feature
+-- @EndDate is inclusive (adds 1 day in WHERE clause)
+-- =============================================
+CREATE PROCEDURE sp_GetLogsByDateRange
+    @Username NVARCHAR(50),
+    @StartDate DATETIME,
+    @EndDate DATETIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT LogID, Message, LogType, CreatedAt
+    FROM ActivityLogs
+    WHERE Username = @Username
+      AND CreatedAt >= @StartDate
+      AND CreatedAt < DATEADD(DAY, 1, @EndDate)  -- Include the entire end date
+    ORDER BY CreatedAt DESC;
+END
+GO
+
+-- Get all instructor accounts
+CREATE PROCEDURE sp_GetAllTeachers
+AS
+BEGIN
+    SELECT Username, FullName, Email, CreatedAt 
+    FROM Users 
+    WHERE Role = 'Instructor' 
+    ORDER BY Username;
+END
+GO
+
+-- Get all student accounts
+CREATE PROCEDURE sp_GetAllStudents
+AS
+BEGIN
+    SELECT Username, FullName, Email, Program, CreatedAt 
+    FROM Users 
+    WHERE Role = 'Student' 
+    ORDER BY Username;
+END
+GO
+
+-- Get all programs
+CREATE PROCEDURE sp_GetAllPrograms
+AS
+BEGIN
+    SELECT ProgramID, ProgramCode, ProgramName, CreatedAt 
+    FROM Programs 
+    ORDER BY ProgramCode;
+END
+GO
+
+-- Get subjects for a specific program
+CREATE PROCEDURE sp_GetProgramSubjects
+    @ProgramCode NVARCHAR(10)
+AS
+BEGIN
+    SELECT SubjectID, SubjectName, DisplayOrder 
+    FROM Subjects 
+    WHERE ProgramCode = @ProgramCode 
+    ORDER BY DisplayOrder;
+END
+GO
+
+-- Get all subjects a teacher covers
+CREATE PROCEDURE sp_GetTeacherSubjects
+    @TeacherUsername NVARCHAR(50)
+AS
+BEGIN
+    SELECT ts.SubjectName, ts.ProgramCode 
+    FROM TeacherSubjects ts 
+    WHERE ts.TeacherUsername = @TeacherUsername;
+END
+GO
+
+-- Assign a teacher to a subject (adds to junction table)
+CREATE PROCEDURE sp_AssignTeacherSubject
+    @TeacherUsername NVARCHAR(50),
+    @SubjectName NVARCHAR(80),
+    @ProgramCode NVARCHAR(10)
+AS
+BEGIN
+    -- Only insert if not already assigned (prevents duplicates)
+    IF NOT EXISTS (SELECT 1 FROM TeacherSubjects 
+                   WHERE TeacherUsername = @TeacherUsername 
+                   AND SubjectName = @SubjectName 
+                   AND ProgramCode = @ProgramCode)
+    BEGIN
+        INSERT INTO TeacherSubjects (TeacherUsername, SubjectName, ProgramCode) 
+        VALUES (@TeacherUsername, @SubjectName, @ProgramCode);
+    END
+END
+GO
+
+-- Remove a teacher from a subject
+CREATE PROCEDURE sp_RemoveTeacherSubject
+    @TeacherUsername NVARCHAR(50),
+    @SubjectName NVARCHAR(80),
+    @ProgramCode NVARCHAR(10)
+AS
+BEGIN
+    DELETE FROM TeacherSubjects 
+    WHERE TeacherUsername = @TeacherUsername 
+      AND SubjectName = @SubjectName 
+      AND ProgramCode = @ProgramCode;
+END
+GO
+
+-- Add a new program
+CREATE PROCEDURE sp_AddProgram
+    @ProgramCode NVARCHAR(10),
+    @ProgramName NVARCHAR(100)
+AS
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM Programs WHERE ProgramCode = @ProgramCode)
+    BEGIN
+        INSERT INTO Programs (ProgramCode, ProgramName) VALUES (@ProgramCode, @ProgramName);
+    END
+END
+GO
+
+-- Delete a program and all its subjects (CASCADE)
+CREATE PROCEDURE sp_DeleteProgram
+    @ProgramCode NVARCHAR(10)
+AS
+BEGIN
+    DELETE FROM Programs WHERE ProgramCode = @ProgramCode;
+END
+GO
+
+-- Add a subject to a program
+CREATE PROCEDURE sp_AddSubject
+    @ProgramCode NVARCHAR(10),
+    @SubjectName NVARCHAR(80),
+    @DisplayOrder INT
+AS
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM Subjects WHERE ProgramCode = @ProgramCode AND SubjectName = @SubjectName)
+    BEGIN
+        INSERT INTO Subjects (ProgramCode, SubjectName, DisplayOrder) 
+        VALUES (@ProgramCode, @SubjectName, @DisplayOrder);
+    END
+END
+GO
+
+-- Edit an existing subject's name or display order
+CREATE PROCEDURE sp_EditSubject
+    @SubjectID INT,
+    @SubjectName NVARCHAR(80),
+    @DisplayOrder INT
+AS
+BEGIN
+    UPDATE Subjects 
+    SET SubjectName = @SubjectName, DisplayOrder = @DisplayOrder 
+    WHERE SubjectID = @SubjectID;
+END
+GO
+
+-- Delete a subject
+CREATE PROCEDURE sp_DeleteSubject
+    @SubjectID INT
+AS
+BEGIN
+    DELETE FROM Subjects WHERE SubjectID = @SubjectID;
+END
+GO
+
+-- Change a student's program (for program shifting)
+CREATE PROCEDURE sp_UpdateStudentProgram
+    @Username NVARCHAR(50),
+    @Program NVARCHAR(50)
+AS
+BEGIN
+    UPDATE Users SET Program = @Program WHERE Username = @Username;
+END
+GO
+
+-- Update user details (name, email, password)
+-- Parameters are optional: only non-null values are updated
+CREATE PROCEDURE sp_UpdateUser
+    @Username NVARCHAR(50),
+    @Password NVARCHAR(100) = NULL,
+    @FullName NVARCHAR(100) = NULL,
+    @Email NVARCHAR(100) = NULL
+AS
+BEGIN
+    IF @Password IS NOT NULL
+        UPDATE Users SET Password = @Password WHERE Username = @Username;
+    IF @FullName IS NOT NULL
+        UPDATE Users SET FullName = @FullName WHERE Username = @Username;
+    IF @Email IS NOT NULL
+        UPDATE Users SET Email = @Email WHERE Username = @Username;
+END
+GO
+
+-- Create a new user account (used by Super Admin)
+CREATE PROCEDURE sp_CreateUser
+    @Username NVARCHAR(50),
+    @Password NVARCHAR(100),
+    @FullName NVARCHAR(100),
+    @Role NVARCHAR(20),
+    @Program NVARCHAR(50) = NULL,
+    @Department NVARCHAR(50) = NULL
+AS
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM Users WHERE Username = @Username)
+    BEGIN
+        INSERT INTO Users (Username, Password, FullName, Role, Program, Department)
+        VALUES (@Username, @Password, @FullName, @Role, @Program, @Department);
+    END
+END
+GO
+
+-- Delete a user (cannot delete SuperAdmin)
+CREATE PROCEDURE sp_DeleteUser
+    @Username NVARCHAR(50)
+AS
+BEGIN
+    DELETE FROM Users WHERE Username = @Username AND Role != 'SuperAdmin';
+END
+GO
+
+-- =============================================
+-- SETUP COMPLETE
 -- =============================================
 PRINT '========================================';
-PRINT 'DATABASE SETUP COMPLETE!';
+PRINT 'DATABASE SETUP COMPLETE - v2.1';
 PRINT '========================================';
 PRINT '';
-PRINT '--- DEPARTMENT ADMIN ACCOUNTS ---';
+PRINT '--- SUPER ADMIN ---';
+PRINT '  super_admin / admin123';
+PRINT '';
+PRINT '--- DEPARTMENT ADMINS ---';
 PRINT 'Password: admin123';
 PRINT '  admin_library, admin_sao, admin_cashier';
 PRINT '  admin_accounting, admin_dean, admin_records';
 PRINT '';
-PRINT '--- INSTRUCTOR ACCOUNTS ---';
+PRINT '--- INSTRUCTORS ---';
 PRINT 'Password: inst123';
 PRINT '  30 instructors - one per subject';
 PRINT '';
-PRINT '--- STUDENT ACCOUNTS ---';
+PRINT '--- STUDENTS ---';
 PRINT '  STUD001 / student123 (BSIT)';
 PRINT '';
-PRINT '--- NEW: ACTIVITY LOGS ---';
-PRINT '  ActivityLogs table + sp_GetActivityLogs';
-PRINT '  Logs all submissions, approvals, rejections';
+PRINT '--- NEW v2.1 FEATURES ---';
+PRINT '  TeacherSubjects junction table (multi-subject teachers)';
+PRINT '  SuperAdmin role + operator panel procedures';
+PRINT '  Activity log date range filtering';
+PRINT '  FileType support (PDF/Image uploads)';
+PRINT '  Dynamic programs & subjects CRUD';
 PRINT '========================================';
 GO
 

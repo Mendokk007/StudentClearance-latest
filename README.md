@@ -1,4 +1,4 @@
-# Student Clearance Database Setup
+# Student Clearance System
 
 ## 🚀 How to Install (for Users)
 
@@ -17,7 +17,7 @@
 
 ### 💻 Application Installation
 1.  Go to the [Releases](https://github.com/Mendokk007/StudentClearance-latest/releases) page.
-2.  Download `StudentClearance_v1.0_Installer.rar`.
+2.  Download `StudentClearance_v2.0_Complete.rar`.
 3.  **Extract** the RAR file to a folder on your computer.
 4.  Run `setup.exe` to install the application.
 5.  Once installed, you can open the app via the **StudentClearance** shortcut on your desktop.
@@ -589,7 +589,7 @@ Student	            STUD001	            student123
 Library Admin	    admin_library	    admin123
 SAO Admin	        admin_sao	        admin123
 Cashier Admin	    admin_cashier	    admin123
-Accounting Admin	admin_accounting	    admin123
+Accounting Admin	admin_accounting	admin123
 Dean's Office Admin	admin_dean	        admin123
 Records Admin	    admin_records	    admin123
 ─────────────────────────────────────────────────────
